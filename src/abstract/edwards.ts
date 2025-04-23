@@ -17,10 +17,6 @@ import {
   type FHash, type Hex
 } from './utils.ts';
 
-// Be friendly to bad ECMAScript parsers by not using bigint literals
-// prettier-ignore
-const _0n = BigInt(0), _1n = BigInt(1), _2n = BigInt(2), _8n = BigInt(8);
-
 /** Edwards curves must declare params a & d. */
 export type CurveType = BasicCurve<bigint> & {
   a: bigint; // curve param a
@@ -138,7 +134,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
   // There are some places where Fp.BYTES is used instead of nByteLength.
   // So far, everything has been tested with curves of Fp.BYTES == nByteLength.
   // TODO: test and find curves which behave otherwise.
-  const MASK = _2n << (BigInt(nByteLength * 8) - _1n);
+  const MASK = 2n << (BigInt(nByteLength * 8) - 1n);
   const modP = Fp.create; // Function overrides
   const Fn = Field(CURVE.n, CURVE.nBitLength);
 
@@ -149,7 +145,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
       try {
         return { isValid: true, value: Fp.sqrt(u * Fp.inv(v)) };
       } catch (e) {
-        return { isValid: false, value: _0n };
+        return { isValid: false, value: 0n };
       }
     });
   const adjustScalarBytes = CURVE.adjustScalarBytes || ((bytes: Uint8Array) => bytes); // NOOP
@@ -163,7 +159,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
   // 0 <= n < MASK
   // Coordinates larger than Fp.ORDER are allowed for zip215
   function aCoordinate(title: string, n: bigint, banZero = false) {
-    const min = banZero ? _1n : _0n;
+    const min = banZero ? 1n : 0n;
     aInRange('coordinate ' + title, n, min, MASK);
   }
 
@@ -175,12 +171,12 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
   const toAffineMemo = memoized((p: Point, iz?: bigint): AffinePoint<bigint> => {
     const { ex: x, ey: y, ez: z } = p;
     const is0 = p.is0();
-    if (iz == null) iz = is0 ? _8n : (Fp.inv(z) as bigint); // 8 was chosen arbitrarily
+    if (iz == null) iz = is0 ? 8n : (Fp.inv(z) as bigint); // 8 was chosen arbitrarily
     const ax = modP(x * iz);
     const ay = modP(y * iz);
     const zz = modP(z * iz);
-    if (is0) return { x: _0n, y: _1n };
-    if (zz !== _1n) throw new Error('invZ was invalid');
+    if (is0) return { x: 0n, y: 1n };
+    if (zz !== 1n) throw new Error('invZ was invalid');
     return { x: ax, y: ay };
   });
   const assertValidMemo = memoized((p: Point) => {
@@ -207,8 +203,8 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
   // Extended Point works in extended coordinates: (x, y, z, t) ∋ (x=x/z, y=y/z, t=xy).
   // https://en.wikipedia.org/wiki/Twisted_Edwards_curve#Extended_coordinates
   class Point implements ExtPointType {
-    static readonly BASE = new Point(CURVE.Gx, CURVE.Gy, _1n, modP(CURVE.Gx * CURVE.Gy));
-    static readonly ZERO = new Point(_0n, _1n, _1n, _0n); // 0, 1, 1, 0
+    static readonly BASE = new Point(CURVE.Gx, CURVE.Gy, 1n, modP(CURVE.Gx * CURVE.Gy));
+    static readonly ZERO = new Point(0n, 1n, 1n, 0n); // 0, 1, 1, 0
     readonly ex: bigint;
     readonly ey: bigint;
     readonly ez: bigint;
@@ -238,7 +234,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
       const { x, y } = p || {};
       aCoordinate('x', x);
       aCoordinate('y', y);
-      return new Point(x, y, _1n, modP(x * y));
+      return new Point(x, y, 1n, modP(x * y));
     }
     static normalizeZ(points: Point[]): Point[] {
       const toInv = FpInvertBatch(
@@ -291,7 +287,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
       const { ex: X1, ey: Y1, ez: Z1 } = this;
       const A = modP(X1 * X1); // A = X12
       const B = modP(Y1 * Y1); // B = Y12
-      const C = modP(_2n * modP(Z1 * Z1)); // C = 2*Z12
+      const C = modP(2n * modP(Z1 * Z1)); // C = 2*Z12
       const D = modP(a * A); // D = a*A
       const x1y1 = X1 + Y1;
       const E = modP(modP(x1y1 * x1y1) - A - B); // E = (X1+Y1)2-A-B
@@ -339,7 +335,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
     // Constant-time multiplication.
     multiply(scalar: bigint): Point {
       const n = scalar;
-      aInRange('scalar', n, _1n, CURVE_ORDER); // 1 <= scalar < L
+      aInRange('scalar', n, 1n, CURVE_ORDER); // 1 <= scalar < L
       const { p, f } = this.wNAF(n);
       return Point.normalizeZ([p, f])[0];
     }
@@ -351,9 +347,9 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
     // Accepts optional accumulator to merge with multiply (important for sparse scalars)
     multiplyUnsafe(scalar: bigint, acc = Point.ZERO): Point {
       const n = scalar;
-      aInRange('scalar', n, _0n, CURVE_ORDER); // 0 <= scalar < L
-      if (n === _0n) return I;
-      if (this.is0() || n === _1n) return this;
+      aInRange('scalar', n, 0n, CURVE_ORDER); // 0 <= scalar < L
+      if (n === 0n) return I;
+      if (this.is0() || n === 1n) return this;
       return wnaf.wNAFCachedUnsafe(this, n, Point.normalizeZ, acc);
     }
 
@@ -379,7 +375,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
 
     clearCofactor(): Point {
       const { h: cofactor } = CURVE;
-      if (cofactor === _1n) return this;
+      if (cofactor === 1n) return this;
       return this.multiplyUnsafe(cofactor);
     }
 
@@ -400,18 +396,18 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
       // zip215=true:  0 <= y < MASK (2^256 for ed25519)
       // zip215=false: 0 <= y < P (2^255-19 for ed25519)
       const max = zip215 ? MASK : Fp.ORDER;
-      aInRange('pointHex.y', y, _0n, max);
+      aInRange('pointHex.y', y, 0n, max);
 
       // Ed25519: x² = (y²-1)/(dy²+1) mod p. Ed448: x² = (y²-1)/(dy²-1) mod p. Generic case:
       // ax²+y²=1+dx²y² => y²-1=dx²y²-ax² => y²-1=x²(dy²-a) => x²=(y²-1)/(dy²-a)
       const y2 = modP(y * y); // denominator is always non-0 mod p.
-      const u = modP(y2 - _1n); // u = y² - 1
+      const u = modP(y2 - 1n); // u = y² - 1
       const v = modP(d * y2 - a); // v = d y² + 1.
       let { isValid, value: x } = uvRatio(u, v); // √(u/v)
       if (!isValid) throw new Error('Point.fromHex: invalid y coordinate');
-      const isXOdd = (x & _1n) === _1n; // There are 2 square roots. Use x_0 bit to select proper
+      const isXOdd = (x & 1n) === 1n; // There are 2 square roots. Use x_0 bit to select proper
       const isLastByteOdd = (lastByte & 0x80) !== 0; // x_0, last bit
-      if (!zip215 && x === _0n && isLastByteOdd)
+      if (!zip215 && x === 0n && isLastByteOdd)
         // if x=0 and x_0 = 1, fail
         throw new Error('Point.fromHex: x=0 and x_0=1');
       if (isLastByteOdd !== isXOdd) x = modP(-x); // if x_0 != x mod 2, set x = p-x
@@ -424,7 +420,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
     toRawBytes(): Uint8Array {
       const { x, y } = this.toAffine();
       const bytes = numberToBytesLE(y, Fp.BYTES); // each y has 2 x values (x, -y)
-      bytes[bytes.length - 1] |= x & _1n ? 0x80 : 0; // when compressing, it's enough to store y
+      bytes[bytes.length - 1] |= x & 1n ? 0x80 : 0; // when compressing, it's enough to store y
       return bytes; // and use the last byte to encode sign of x
     }
     toHex(): string {
@@ -483,7 +479,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
     const R = G.multiply(r).toRawBytes(); // R = rG
     const k = hashDomainToScalar(options.context, R, pointBytes, msg); // R || A || PH(M)
     const s = modN(r + k * scalar); // S = (r + k * s) mod L
-    aInRange('signature.s', s, _0n, CURVE_ORDER); // 0 <= s < l
+    aInRange('signature.s', s, 0n, CURVE_ORDER); // 0 <= s < l
     const res = concatBytes(R, numberToBytesLE(s, Fp.BYTES));
     return ensureBytes('result', res, Fp.BYTES * 2); // 64-byte signature
   }
@@ -539,7 +535,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
      */
     precompute(windowSize = 8, point: ExtPointType = Point.BASE): ExtPointType {
       point._setWindowSize(windowSize);
-      point.multiply(BigInt(3));
+      point.multiply(3n);
       return point;
     },
   };

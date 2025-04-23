@@ -7,9 +7,6 @@
 import { type IField, nLength, validateField } from './modular.ts';
 import { bitLen, bitMask, validateObject } from './utils.ts';
 
-const _0n = BigInt(0);
-const _1n = BigInt(1);
-
 export type AffinePoint<T> = {
   x: T;
   y: T;
@@ -73,7 +70,7 @@ function calcOffsets(n: bigint, window: number, wOpts: WOpts) {
   if (wbits > windowSize) {
     // we skip zero, which means instead of `>= size-1`, we do `> size`
     wbits -= maxNumber; // -32, can be maxNumber - wbits, but then we need to set isNeg here.
-    nextN += _1n; // +256 (carry)
+    nextN += 1n; // +256 (carry)
   }
   const offsetStart = window * windowSize;
   const offset = offsetStart + Math.abs(wbits) - 1; // -1 because we skip zero
@@ -145,10 +142,10 @@ export function wNAF<T extends Group<T>>(c: GroupConstructor<T>, bits: number): 
     // non-const time multiplication ladder
     unsafeLadder(elm: T, n: bigint, p = c.ZERO) {
       let d: T = elm;
-      while (n > _0n) {
-        if (n & _1n) p = p.add(d);
+      while (n > 0n) {
+        if (n & 1n) p = p.add(d);
         d = d.double();
-        n >>= _1n;
+        n >>= 1n;
       }
       return p;
     },
@@ -206,7 +203,7 @@ export function wNAF<T extends Group<T>>(c: GroupConstructor<T>, bits: number): 
       // It's not obvious how this can fail, but still worth investigating later.
       const wo = calcWOpts(W, bits);
       for (let window = 0; window < wo.windows; window++) {
-        // (n === _0n) is handled and not early-exited. isEven and offsetF are used for noise
+        // (n === 0n) is handled and not early-exited. isEven and offsetF are used for noise
         const { nextN, offset, isZero, isNeg, isNegF, offsetF } = calcOffsets(n, window, wo);
         n = nextN;
         if (isZero) {
@@ -235,7 +232,7 @@ export function wNAF<T extends Group<T>>(c: GroupConstructor<T>, bits: number): 
     wNAFUnsafe(W: number, precomputes: T[], n: bigint, acc: T = c.ZERO): T {
       const wo = calcWOpts(W, bits);
       for (let window = 0; window < wo.windows; window++) {
-        if (n === _0n) break; // Early-exit, skip 0 value
+        if (n === 0n) break; // Early-exit, skip 0 value
         const { nextN, offset, isZero, isNeg } = calcOffsets(n, window, wo);
         n = nextN;
         if (isZero) {

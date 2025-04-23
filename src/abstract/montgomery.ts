@@ -14,8 +14,6 @@ import {
   validateObject,
 } from './utils.ts';
 
-const _0n = BigInt(0);
-const _1n = BigInt(1);
 type Hex = string | Uint8Array;
 
 export type CurveType = {
@@ -69,7 +67,7 @@ export function montgomery(curveDef: CurveType): CurveFn {
   const montgomeryBytes = Math.ceil(montgomeryBits / 8);
   const fieldLen = CURVE.nByteLength;
   const adjustScalarBytes = CURVE.adjustScalarBytes || ((bytes: Uint8Array) => bytes);
-  const powPminus2 = CURVE.powPminus2 || ((x: bigint) => Fp.pow(x, P - BigInt(2)));
+  const powPminus2 = CURVE.powPminus2 || ((x: bigint) => Fp.pow(x, P - 2n));
 
   // cswap from RFC7748. But it is not from RFC7748!
   /*
@@ -90,7 +88,7 @@ export function montgomery(curveDef: CurveType): CurveFn {
 
   // x25519 from 4
   // The constant a24 is (486662 - 2) / 4 = 121665 for curve25519/X25519
-  const a24 = (CURVE.a - BigInt(2)) / BigInt(4);
+  const a24 = (CURVE.a - 2n) / 4n;
   /**
    *
    * @param pointU u coordinate (x) on Montgomery Curve 25519
@@ -98,20 +96,20 @@ export function montgomery(curveDef: CurveType): CurveFn {
    * @returns new Point on Montgomery curve
    */
   function montgomeryLadder(u: bigint, scalar: bigint): bigint {
-    aInRange('u', u, _0n, P);
-    aInRange('scalar', scalar, _0n, P);
+    aInRange('u', u, 0n, P);
+    aInRange('scalar', scalar, 0n, P);
     // Section 5: Implementations MUST accept non-canonical values and process them as
     // if they had been reduced modulo the field prime.
     const k = scalar;
     const x_1 = u;
-    let x_2 = _1n;
-    let z_2 = _0n;
+    let x_2 = 1n;
+    let z_2 = 0n;
     let x_3 = u;
-    let z_3 = _1n;
-    let swap = _0n;
+    let z_3 = 1n;
+    let swap = 0n;
     let sw: [bigint, bigint];
-    for (let t = BigInt(montgomeryBits - 1); t >= _0n; t--) {
-      const k_t = (k >> t) & _1n;
+    for (let t = BigInt(montgomeryBits - 1); t >= 0n; t--) {
+      const k_t = (k >> t) & 1n;
       swap ^= k_t;
       sw = cswap(swap, x_2, x_3);
       x_2 = sw[0];
@@ -177,7 +175,7 @@ export function montgomery(curveDef: CurveType): CurveFn {
     const pu = montgomeryLadder(pointU, _scalar);
     // The result was not contributory
     // https://cr.yp.to/ecdh.html#validate
-    if (pu === _0n) throw new Error('invalid private or public key received');
+    if (pu === 0n) throw new Error('invalid private or public key received');
     return encodeUCoordinate(pu);
   }
   // Computes public key from private. By doing scalar multiplication of base point.

@@ -8,8 +8,6 @@
 // This is OK: `abstract` directory does not use noble-hashes.
 // User may opt-in into using different hashing library. This way, noble-hashes
 // won't be included into their bundle.
-const _0n = /* @__PURE__ */ BigInt(0);
-const _1n = /* @__PURE__ */ BigInt(1);
 export type Hex = Uint8Array | string; // hex strings are accepted for simplicity
 export type PrivKey = Hex | bigint; // bigints are accepted to ease learning curve
 export type CHash = {
@@ -40,7 +38,7 @@ export function numberToHexUnpadded(num: number | bigint): string {
 
 export function hexToNumber(hex: string): bigint {
   if (typeof hex !== 'string') throw new Error('hex string expected, got ' + typeof hex);
-  return hex === '' ? _0n : BigInt('0x' + hex); // Big Endian
+  return hex === '' ? 0n : BigInt('0x' + hex); // Big Endian
 }
 
 // Built-in hex conversion https://caniuse.com/mdn-javascript_builtins_uint8array_fromhex
@@ -192,7 +190,7 @@ export function utf8ToBytes(str: string): Uint8Array {
 }
 
 // Is positive bigint
-const isPosBig = (n: bigint) => typeof n === 'bigint' && _0n <= n;
+const isPosBig = (n: bigint) => typeof n === 'bigint' && 0n <= n;
 
 export function inRange(n: bigint, min: bigint, max: bigint): boolean {
   return isPosBig(n) && isPosBig(min) && isPosBig(max) && min <= n && n < max;
@@ -222,7 +220,7 @@ export function aInRange(title: string, n: bigint, min: bigint, max: bigint): vo
  */
 export function bitLen(n: bigint): number {
   let len;
-  for (len = 0; n > _0n; n >>= _1n, len += 1);
+  for (len = 0; n > 0n; n >>= 1n, len += 1);
   return len;
 }
 
@@ -232,21 +230,21 @@ export function bitLen(n: bigint): number {
  * Same as `!!+Array.from(n.toString(2)).reverse()[pos]`
  */
 export function bitGet(n: bigint, pos: number): bigint {
-  return (n >> BigInt(pos)) & _1n;
+  return (n >> BigInt(pos)) & 1n;
 }
 
 /**
  * Sets single bit at position.
  */
 export function bitSet(n: bigint, pos: number, value: boolean): bigint {
-  return n | ((value ? _1n : _0n) << BigInt(pos));
+  return n | ((value ? 1n : 0n) << BigInt(pos));
 }
 
 /**
  * Calculate mask for N bits. Not using ** operator with bigints because of old engines.
  * Same as BigInt(`0b${Array(i).fill('1').join('')}`)
  */
-export const bitMask = (n: number): bigint => (_1n << BigInt(n)) - _1n;
+export const bitMask = (n: number): bigint => (1n << BigInt(n)) - 1n;
 
 // DRBG
 

@@ -27,11 +27,9 @@ import {
 } from './abstract/utils.ts';
 import { mapToCurveSimpleSWU, type ProjPointType as PointType } from './abstract/weierstrass.ts';
 
-const secp256k1P = BigInt('0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f');
-const secp256k1N = BigInt('0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141');
-const _1n = BigInt(1);
-const _2n = BigInt(2);
-const divNearest = (a: bigint, b: bigint) => (a + b / _2n) / b;
+const secp256k1P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
+const secp256k1N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
+const divNearest = (a: bigint, b: bigint) => (a + b / 2n) / b;
 
 /**
  * √n = n^((p+1)/4) for fields p = 3 mod 4. We unwrap the loop and multiply bit-by-bit.
@@ -40,23 +38,20 @@ const divNearest = (a: bigint, b: bigint) => (a + b / _2n) / b;
 function sqrtMod(y: bigint): bigint {
   const P = secp256k1P;
   // prettier-ignore
-  const _3n = BigInt(3), _6n = BigInt(6), _11n = BigInt(11), _22n = BigInt(22);
-  // prettier-ignore
-  const _23n = BigInt(23), _44n = BigInt(44), _88n = BigInt(88);
   const b2 = (y * y * y) % P; // x^3, 11
   const b3 = (b2 * b2 * y) % P; // x^7
-  const b6 = (pow2(b3, _3n, P) * b3) % P;
-  const b9 = (pow2(b6, _3n, P) * b3) % P;
-  const b11 = (pow2(b9, _2n, P) * b2) % P;
-  const b22 = (pow2(b11, _11n, P) * b11) % P;
-  const b44 = (pow2(b22, _22n, P) * b22) % P;
-  const b88 = (pow2(b44, _44n, P) * b44) % P;
-  const b176 = (pow2(b88, _88n, P) * b88) % P;
-  const b220 = (pow2(b176, _44n, P) * b44) % P;
-  const b223 = (pow2(b220, _3n, P) * b3) % P;
-  const t1 = (pow2(b223, _23n, P) * b22) % P;
-  const t2 = (pow2(t1, _6n, P) * b2) % P;
-  const root = pow2(t2, _2n, P);
+  const b6 = (pow2(b3, 3n, P) * b3) % P;
+  const b9 = (pow2(b6, 3n, P) * b3) % P;
+  const b11 = (pow2(b9, 2n, P) * b2) % P;
+  const b22 = (pow2(b11, 11n, P) * b11) % P;
+  const b44 = (pow2(b22, 22n, P) * b22) % P;
+  const b88 = (pow2(b44, 44n, P) * b44) % P;
+  const b176 = (pow2(b88, 88n, P) * b88) % P;
+  const b220 = (pow2(b176, 44n, P) * b44) % P;
+  const b223 = (pow2(b220, 3n, P) * b3) % P;
+  const t1 = (pow2(b223, 23n, P) * b22) % P;
+  const t2 = (pow2(t1, 6n, P) * b2) % P;
+  const root = pow2(t2, 2n, P);
   if (!Fpk1.eql(Fpk1.sqr(root), y)) throw new Error('Cannot find square root');
   return root;
 }
@@ -80,24 +75,24 @@ const Fpk1 = Field(secp256k1P, undefined, undefined, { sqrt: sqrtMod });
  */
 export const secp256k1: CurveFnWithCreate = createCurve(
   {
-    a: BigInt(0),
-    b: BigInt(7),
+    a: 0n,
+    b: 7n,
     Fp: Fpk1,
     n: secp256k1N,
-    Gx: BigInt('55066263022277343669578718895168534326250603453777594175500187360389116729240'),
-    Gy: BigInt('32670510020758816978083085130507043184471273380659243275938904335757337482424'),
-    h: BigInt(1),
+    Gx: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,
+    Gy: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,
+    h: 1n,
     lowS: true, // Allow only low-S signatures by default in sign() and verify()
     endo: {
       // Endomorphism, see above
-      beta: BigInt('0x7ae96a2b657c07106e64479eac3434e99cf0497512f58995c1396c28719501ee'),
+      beta: 0x7ae96a2b657c07106e64479eac3434e99cf0497512f58995c1396c28719501een,
       splitScalar: (k: bigint) => {
         const n = secp256k1N;
-        const a1 = BigInt('0x3086d221a7d46bcde86c90e49284eb15');
-        const b1 = -_1n * BigInt('0xe4437ed6010e88286f547fa90abfe4c3');
-        const a2 = BigInt('0x114ca50f7a8e2f3f657c1108d9d44cfd8');
+        const a1 = 0x3086d221a7d46bcde86c90e49284eb15n;
+        const b1 = -1n * 0xe4437ed6010e88286f547fa90abfe4c3n;
+        const a2 = 0x114ca50f7a8e2f3f657c1108d9d44cfd8n;
         const b2 = a1;
-        const POW_2_128 = BigInt('0x100000000000000000000000000000000'); // (2n**128n).toString(16)
+        const POW_2_128 = 0x100000000000000000000000000000000n; // (2n**128n).toString(16)
 
         const c1 = divNearest(b2 * k, n);
         const c2 = divNearest(-b1 * k, n);
@@ -119,7 +114,6 @@ export const secp256k1: CurveFnWithCreate = createCurve(
 
 // Schnorr signatures are superior to ECDSA from above. Below is Schnorr-specific BIP0340 code.
 // https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki
-const _0n = BigInt(0);
 /** An object mapping tags to their tagged hash prefix of [SHA256(tag) | SHA256(tag)] */
 const TAGGED_HASH_PREFIXES: { [tag: string]: Uint8Array } = {};
 function taggedHash(tag: string, ...messages: Uint8Array[]): Uint8Array {
@@ -153,12 +147,12 @@ function schnorrGetExtPubKey(priv: PrivKey) {
  * @returns valid point checked for being on-curve
  */
 function lift_x(x: bigint): PointType<bigint> {
-  aInRange('x', x, _1n, secp256k1P); // Fail if x ≥ p.
+  aInRange('x', x, 1n, secp256k1P); // Fail if x ≥ p.
   const xx = modP(x * x);
-  const c = modP(xx * x + BigInt(7)); // Let c = x³ + 7 mod p.
+  const c = modP(xx * x + 7n); // Let c = x³ + 7 mod p.
   let y = sqrtMod(c); // Let y = c^(p+1)/4 mod p.
-  if (y % _2n !== _0n) y = modP(-y); // Return the unique point P such that x(P) = x and
-  const p = new Point(x, y, _1n); // y(P) = y if y mod 2 = 0 or y(P) = p-y otherwise.
+  if (y % 2n !== 0n) y = modP(-y); // Return the unique point P such that x(P) = x and
+  const p = new Point(x, y, 1n); // y(P) = y if y mod 2 = 0 or y(P) = p-y otherwise.
   p.assertValidity();
   return p;
 }
@@ -192,7 +186,7 @@ function schnorrSign(
   const t = numTo32b(d ^ num(taggedHash('BIP0340/aux', a))); // Let t be the byte-wise xor of bytes(d) and hash/aux(a)
   const rand = taggedHash('BIP0340/nonce', t, px, m); // Let rand = hash/nonce(t || bytes(P) || m)
   const k_ = modN(num(rand)); // Let k' = int(rand) mod n
-  if (k_ === _0n) throw new Error('sign failed: k is zero'); // Fail if k' = 0.
+  if (k_ === 0n) throw new Error('sign failed: k is zero'); // Fail if k' = 0.
   const { bytes: rx, scalar: k } = schnorrGetExtPubKey(k_); // Let R = k'⋅G.
   const e = challenge(rx, px, m); // Let e = int(hash/challenge(bytes(R) || bytes(P) || m)) mod n.
   const sig = new Uint8Array(64); // Let sig = bytes(R) || bytes((k + ed) mod n).
@@ -214,9 +208,9 @@ function schnorrVerify(signature: Hex, message: Hex, publicKey: Hex): boolean {
   try {
     const P = lift_x(num(pub)); // P = lift_x(int(pk)); fail if that fails
     const r = num(sig.subarray(0, 32)); // Let r = int(sig[0:32]); fail if r ≥ p.
-    if (!inRange(r, _1n, secp256k1P)) return false;
+    if (!inRange(r, 1n, secp256k1P)) return false;
     const s = num(sig.subarray(32, 64)); // Let s = int(sig[32:64]); fail if s ≥ n.
-    if (!inRange(s, _1n, secp256k1N)) return false;
+    if (!inRange(s, 1n, secp256k1N)) return false;
     const e = challenge(numTo32b(r), pointToBytes(P), m); // int(challenge(bytes(r)||bytes(P)||m))%n
     const R = GmulAdd(P, s, modN(-e)); // R = s⋅G - e⋅P
     if (!R || !R.hasEvenY() || R.toAffine().x !== r) return false; // -eP == (n-e)P
@@ -303,8 +297,8 @@ const isoMap = /* @__PURE__ */ (() =>
   ))();
 const mapSWU = /* @__PURE__ */ (() =>
   mapToCurveSimpleSWU(Fpk1, {
-    A: BigInt('0x3f8731abdd661adca08a5558f0f5d272e953d363cb6f0e5d405447c01a444533'),
-    B: BigInt('1771'),
+    A: 0x3f8731abdd661adca08a5558f0f5d272e953d363cb6f0e5d405447c01a444533n,
+    B: 1771n,
     Z: Fpk1.create(BigInt('-11')),
   }))();
 /** Hashing / encoding to secp256k1 points / field. RFC 9380 methods. */

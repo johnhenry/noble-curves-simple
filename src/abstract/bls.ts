@@ -36,9 +36,6 @@ import {
 
 type Fp = bigint; // Can be different field?
 
-// prettier-ignore
-const _0n = BigInt(0), _1n = BigInt(1), _2n = BigInt(2), _3n = BigInt(3);
-
 export type TwistType = 'multiplicative' | 'divisive';
 
 export type ShortSignatureCoder<Fp> = {
@@ -179,11 +176,11 @@ export type CurveFn = {
 function NAfDecomposition(a: bigint) {
   const res = [];
   // a>1 because of marker bit
-  for (; a > _1n; a >>= _1n) {
-    if ((a & _1n) === _0n) res.unshift(0);
-    else if ((a & _3n) === _3n) {
+  for (; a > 1n; a >>= 1n) {
+    if ((a & 1n) === 0n) res.unshift(0);
+    else if ((a & 3n) === 3n) {
       res.unshift(-1);
-      a += _1n;
+      a += 1n;
     } else res.unshift(1);
   }
   return res;
@@ -227,21 +224,21 @@ export function bls(CURVE: CurveType): CurveFn {
       Fp12.mul034(f, Fp2.mul(c2, Py), Fp2.mul(c1, Px), c0);
   } else throw new Error('bls: unknown twist type');
 
-  const Fp2div2 = Fp2.div(Fp2.ONE, Fp2.mul(Fp2.ONE, _2n));
+  const Fp2div2 = Fp2.div(Fp2.ONE, Fp2.mul(Fp2.ONE, 2n));
   function pointDouble(ell: PrecomputeSingle, Rx: Fp2, Ry: Fp2, Rz: Fp2) {
     const t0 = Fp2.sqr(Ry); // Ry²
     const t1 = Fp2.sqr(Rz); // Rz²
-    const t2 = Fp2.mulByB(Fp2.mul(t1, _3n)); // 3 * T1 * B
-    const t3 = Fp2.mul(t2, _3n); // 3 * T2
+    const t2 = Fp2.mulByB(Fp2.mul(t1, 3n)); // 3 * T1 * B
+    const t3 = Fp2.mul(t2, 3n); // 3 * T2
     const t4 = Fp2.sub(Fp2.sub(Fp2.sqr(Fp2.add(Ry, Rz)), t1), t0); // (Ry + Rz)² - T1 - T0
     const c0 = Fp2.sub(t2, t0); // T2 - T0 (i)
-    const c1 = Fp2.mul(Fp2.sqr(Rx), _3n); // 3 * Rx²
+    const c1 = Fp2.mul(Fp2.sqr(Rx), 3n); // 3 * Rx²
     const c2 = Fp2.neg(t4); // -T4 (-h)
 
     ell.push([c0, c1, c2]);
 
     Rx = Fp2.mul(Fp2.mul(Fp2.mul(Fp2.sub(t0, t3), Rx), Ry), Fp2div2); // ((T0 - T3) * Rx * Ry) / 2
-    Ry = Fp2.sub(Fp2.sqr(Fp2.mul(Fp2.add(t0, t3), Fp2div2)), Fp2.mul(Fp2.sqr(t2), _3n)); // ((T0 + T3) / 2)² - 3 * T2²
+    Ry = Fp2.sub(Fp2.sqr(Fp2.mul(Fp2.add(t0, t3), Fp2div2)), Fp2.mul(Fp2.sqr(t2), 3n)); // ((T0 + T3) / 2)² - 3 * T2²
     Rz = Fp2.mul(t0, t4); // T0 * T4
     return { Rx, Ry, Rz };
   }
@@ -258,7 +255,7 @@ export function bls(CURVE: CurveType): CurveFn {
     const t2 = Fp2.sqr(t1); // T1²
     const t3 = Fp2.mul(t2, t1); // T2 * T1
     const t4 = Fp2.mul(t2, Rx); // T2 * Rx
-    const t5 = Fp2.add(Fp2.sub(t3, Fp2.mul(t4, _2n)), Fp2.mul(Fp2.sqr(t0), Rz)); // T3 - 2 * T4 + T0² * Rz
+    const t5 = Fp2.add(Fp2.sub(t3, Fp2.mul(t4, 2n)), Fp2.mul(Fp2.sqr(t0), Rz)); // T3 - 2 * T4 + T0² * Rz
     Rx = Fp2.mul(t1, t5); // T1 * T5
     Ry = Fp2.sub(Fp2.mul(Fp2.sub(t4, t5), t0), Fp2.mul(t3, Ry)); // (T4 - T5) * T0 - T3 * Ry
     Rz = Fp2.mul(Rz, t3); // Rz * T3

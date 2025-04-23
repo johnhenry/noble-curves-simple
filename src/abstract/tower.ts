@@ -14,10 +14,6 @@ import * as mod from './modular.ts';
 import { bitLen, bitMask, concatBytes, notImplemented } from './utils.ts';
 import type { ProjConstructor, ProjPointType } from './weierstrass.ts';
 
-// Be friendly to bad ECMAScript parsers by not using bigint literals
-// prettier-ignore
-const _0n = BigInt(0), _1n = BigInt(1), _2n = BigInt(2), _3n = BigInt(3);
-
 // Fp₂ over complex plane
 export type BigintTuple = [bigint, bigint];
 export type Fp = bigint;
@@ -63,7 +59,7 @@ function calcFrobeniusCoefficients<T>(
   for (let i = 0; i < num; i++) {
     const a = BigInt(i + 1);
     const powers: T[] = [];
-    for (let j = 0, qPower = _1n; j < degree; j++) {
+    for (let j = 0, qPower = 1n; j < degree; j++) {
       const power = ((a * qPower - a) / _divisor) % towerModulus;
       powers.push(Fp.pow(nonResidue, power));
       qPower *= modulus;
@@ -89,8 +85,8 @@ export function psiFrobenius(
   PSI2_Y: Fp2;
 } {
   // Ψ endomorphism
-  const PSI_X = Fp2.pow(base, (Fp.ORDER - _1n) / _3n); // u^((p-1)/3)
-  const PSI_Y = Fp2.pow(base, (Fp.ORDER - _1n) / _2n); // u^((p-1)/2)
+  const PSI_X = Fp2.pow(base, (Fp.ORDER - 1n) / 3n); // u^((p-1)/3)
+  const PSI_Y = Fp2.pow(base, (Fp.ORDER - 1n) / 2n); // u^((p-1)/2)
   function psi(x: Fp2, y: Fp2): [Fp2, Fp2] {
     // This x10 faster than previous version in bls12-381
     const x2 = Fp2.mul(Fp2.frobeniusMap(x, 1), PSI_X);
@@ -98,10 +94,10 @@ export function psiFrobenius(
     return [x2, y2];
   }
   // Ψ²(P) endomorphism (psi2(x) = psi(psi(x)))
-  const PSI2_X = Fp2.pow(base, (Fp.ORDER ** _2n - _1n) / _3n); // u^((p^2 - 1)/3)
+  const PSI2_X = Fp2.pow(base, (Fp.ORDER ** 2n - 1n) / 3n); // u^((p^2 - 1)/3)
   // This equals -1, which causes y to be Fp2.neg(y).
   // But not sure if there are case when this is not true?
-  const PSI2_Y = Fp2.pow(base, (Fp.ORDER ** _2n - _1n) / _2n); // u^((p^2 - 1)/3)
+  const PSI2_Y = Fp2.pow(base, (Fp.ORDER ** 2n - 1n) / 2n); // u^((p^2 - 1)/3)
   if (!Fp2.eql(PSI2_Y, Fp2.neg(Fp2.ONE))) throw new Error('psiFrobenius: PSI2_Y!==-1');
   function psi2(x: Fp2, y: Fp2): [Fp2, Fp2] {
     return [Fp2.mul(x, PSI2_X), Fp2.neg(y)];
@@ -166,8 +162,8 @@ export function tower12(opts: Tower12Opts): {
   const { ORDER } = opts;
   // Fp
   const Fp = mod.Field(ORDER);
-  const FpNONRESIDUE = Fp.create(opts.NONRESIDUE || BigInt(-1));
-  const Fpdiv2 = Fp.div(Fp.ONE, _2n); // 1/2
+  const FpNONRESIDUE = Fp.create(opts.NONRESIDUE || (-1n));
+  const Fpdiv2 = Fp.div(Fp.ONE, 2n); // 1/2
 
   // Fp2
   const FP2_FROBENIUS_COEFFICIENTS = calcFrobeniusCoefficients(Fp, FpNONRESIDUE, Fp.ORDER, 2)[0];
@@ -286,10 +282,10 @@ export function tower12(opts: Tower12Opts): {
     // Same as sgn0_m_eq_2 in RFC 9380
     isOdd: (x: Fp2) => {
       const { re: x0, im: x1 } = Fp2.reim(x);
-      const sign_0 = x0 % _2n;
-      const zero_0 = x0 === _0n;
-      const sign_1 = x1 % _2n;
-      return BigInt(sign_0 || (zero_0 && sign_1)) == _1n;
+      const sign_0 = x0 % 2n;
+      const zero_0 = x0 === 0n;
+      const sign_1 = x1 % 2n;
+      return BigInt(sign_0 || (zero_0 && sign_1)) == 1n;
     },
     // Bytes util
     fromBytes(b: Uint8Array): Fp2 {
@@ -351,8 +347,8 @@ export function tower12(opts: Tower12Opts): {
   };
   const Fp6Square = ({ c0, c1, c2 }: Fp6) => {
     let t0 = Fp2.sqr(c0); // c0²
-    let t1 = Fp2.mul(Fp2.mul(c0, c1), _2n); // 2 * c0 * c1
-    let t3 = Fp2.mul(Fp2.mul(c1, c2), _2n); // 2 * c1 * c2
+    let t1 = Fp2.mul(Fp2.mul(c0, c1), 2n); // 2 * c0 * c1
+    let t3 = Fp2.mul(Fp2.mul(c1, c2), 2n); // 2 * c1 * c2
     let t4 = Fp2.sqr(c2); // c2²
     return {
       c0: Fp2.add(Fp2.mulByNonresidue(t3), t0), // T3 * (u + 1) + T0

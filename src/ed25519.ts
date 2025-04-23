@@ -29,36 +29,26 @@ import {
 } from './abstract/utils.ts';
 
 // 2n**255n - 19n
-const ED25519_P = BigInt(
-  '57896044618658097711785492504343953926634992332820282019728792003956564819949'
-);
+const ED25519_P = 57896044618658097711785492504343953926634992332820282019728792003956564819949n;
 // √(-1) aka √(a) aka 2^((p-1)/4)
 // Fp.sqrt(Fp.neg(1))
-const ED25519_SQRT_M1 = /* @__PURE__ */ BigInt(
-  '19681161376707505956807079304988542015446066515923890162744021073123829784752'
-);
-
-// prettier-ignore
-const _0n = BigInt(0), _1n = BigInt(1), _2n = BigInt(2), _3n = BigInt(3);
-// prettier-ignore
-const _5n = BigInt(5), _8n = BigInt(8);
+const ED25519_SQRT_M1 = /* @__PURE__ */ 19681161376707505956807079304988542015446066515923890162744021073123829784752n;
 
 function ed25519_pow_2_252_3(x: bigint) {
   // prettier-ignore
-  const _10n = BigInt(10), _20n = BigInt(20), _40n = BigInt(40), _80n = BigInt(80);
   const P = ED25519_P;
   const x2 = (x * x) % P;
   const b2 = (x2 * x) % P; // x^3, 11
-  const b4 = (pow2(b2, _2n, P) * b2) % P; // x^15, 1111
-  const b5 = (pow2(b4, _1n, P) * x) % P; // x^31
-  const b10 = (pow2(b5, _5n, P) * b5) % P;
-  const b20 = (pow2(b10, _10n, P) * b10) % P;
-  const b40 = (pow2(b20, _20n, P) * b20) % P;
-  const b80 = (pow2(b40, _40n, P) * b40) % P;
-  const b160 = (pow2(b80, _80n, P) * b80) % P;
-  const b240 = (pow2(b160, _80n, P) * b80) % P;
-  const b250 = (pow2(b240, _10n, P) * b10) % P;
-  const pow_p_5_8 = (pow2(b250, _2n, P) * x) % P;
+  const b4 = (pow2(b2, 2n, P) * b2) % P; // x^15, 1111
+  const b5 = (pow2(b4, 1n, P) * x) % P; // x^31
+  const b10 = (pow2(b5, 5n, P) * b5) % P;
+  const b20 = (pow2(b10, 10n, P) * b10) % P;
+  const b40 = (pow2(b20, 20n, P) * b20) % P;
+  const b80 = (pow2(b40, 40n, P) * b40) % P;
+  const b160 = (pow2(b80, 80n, P) * b80) % P;
+  const b240 = (pow2(b160, 80n, P) * b80) % P;
+  const b250 = (pow2(b240, 10n, P) * b10) % P;
+  const pow_p_5_8 = (pow2(b250, 2n, P) * x) % P;
   // ^ To pow to (p+3)/8, multiply it by x.
   return { pow_p_5_8, b2 };
 }
@@ -111,16 +101,16 @@ const Fp = /* @__PURE__ */ (() => Field(ED25519_P, undefined, true))();
 const ed25519Defaults = /* @__PURE__ */ (() =>
   ({
     // Removing Fp.create() will still work, and is 10% faster on sign
-    a: Fp.create(BigInt(-1)),
+    a: Fp.create((-1n)),
     // d is -121665/121666 a.k.a. Fp.neg(121665 * Fp.inv(121666))
-    d: BigInt('37095705934669439343138083508754565189542113879843219016388785533085940283555'),
+    d: 37095705934669439343138083508754565189542113879843219016388785533085940283555n,
     // Finite field 2n**255n - 19n
     Fp,
     // Subgroup order 2n**252n + 27742317777372353535851937790883648493n;
-    n: BigInt('7237005577332262213973186563042994240857116359379907606001950938285454250989'),
-    h: _8n,
-    Gx: BigInt('15112221349535400772501151409588531511454012693041857206046113283949847762202'),
-    Gy: BigInt('46316835694926478169428394003475163141307993866256225615783033603165251855960'),
+    n: 7237005577332262213973186563042994240857116359379907606001950938285454250989n,
+    h: 8n,
+    Gx: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,
+    Gy: 46316835694926478169428394003475163141307993866256225615783033603165251855960n,
     hash: sha512,
     randomBytes,
     adjustScalarBytes,
@@ -179,15 +169,15 @@ export const ed25519ph: CurveFn = /* @__PURE__ */ (() =>
 export const x25519: XCurveFn = /* @__PURE__ */ (() =>
   montgomery({
     P: ED25519_P,
-    a: BigInt(486662),
+    a: 486662n,
     montgomeryBits: 255, // n is 253 bits
     nByteLength: 32,
-    Gu: BigInt(9),
+    Gu: 9n,
     powPminus2: (x: bigint): bigint => {
       const P = ED25519_P;
       // x^(p-2) aka x^(2^255-21)
       const { pow_p_5_8, b2 } = ed25519_pow_2_252_3(x);
-      return mod(pow2(pow_p_5_8, _3n, P) * b2, P);
+      return mod(pow2(pow_p_5_8, 3n, P) * b2, P);
     },
     adjustScalarBytes,
     randomBytes,
@@ -204,8 +194,7 @@ export const x25519: XCurveFn = /* @__PURE__ */ (() =>
  */
 export function edwardsToMontgomeryPub(edwardsPub: Hex): Uint8Array {
   const { y } = ed25519.ExtendedPoint.fromHex(edwardsPub);
-  const _1n = BigInt(1);
-  return Fp.toBytes(Fp.create((_1n + y) * Fp.inv(_1n - y)));
+  return Fp.toBytes(Fp.create((1n + y) * Fp.inv(1n - y)));
 }
 export const edwardsToMontgomery: typeof edwardsToMontgomeryPub = edwardsToMontgomeryPub; // deprecated
 
@@ -225,17 +214,17 @@ export function edwardsToMontgomeryPriv(edwardsPriv: Uint8Array): Uint8Array {
 // NOTE: very important part is usage of FpSqrtEven for ELL2_C1_EDWARDS, since
 // SageMath returns different root first and everything falls apart
 
-const ELL2_C1 = /* @__PURE__ */ (() => (Fp.ORDER + _3n) / _8n)(); // 1. c1 = (q + 3) / 8       # Integer arithmetic
-const ELL2_C2 = /* @__PURE__ */ (() => Fp.pow(_2n, ELL2_C1))(); // 2. c2 = 2^c1
+const ELL2_C1 = /* @__PURE__ */ (() => (Fp.ORDER + 3n) / 8n)(); // 1. c1 = (q + 3) / 8       # Integer arithmetic
+const ELL2_C2 = /* @__PURE__ */ (() => Fp.pow(2n, ELL2_C1))(); // 2. c2 = 2^c1
 const ELL2_C3 = /* @__PURE__ */ (() => Fp.sqrt(Fp.neg(Fp.ONE)))(); // 3. c3 = sqrt(-1)
 
 // prettier-ignore
 function map_to_curve_elligator2_curve25519(u: bigint) {
-  const ELL2_C4 = (Fp.ORDER - _5n) / _8n; // 4. c4 = (q - 5) / 8       # Integer arithmetic
-  const ELL2_J = BigInt(486662);
+  const ELL2_C4 = (Fp.ORDER - 5n) / 8n; // 4. c4 = (q - 5) / 8       # Integer arithmetic
+  const ELL2_J = 486662n;
 
   let tv1 = Fp.sqr(u);          //  1.  tv1 = u^2
-  tv1 = Fp.mul(tv1, _2n);       //  2.  tv1 = 2 * tv1
+  tv1 = Fp.mul(tv1, 2n);       //  2.  tv1 = 2 * tv1
   let xd = Fp.add(tv1, Fp.ONE); //  3.   xd = tv1 + 1         # Nonzero: -1 is square (mod p), tv1 is not
   let x1n = Fp.neg(ELL2_J);     //  4.  x1n = -J              # x1 = x1n / xd = -J / (1 + 2 * u^2)
   let tv2 = Fp.sqr(xd);         //  5.  tv2 = xd^2
@@ -272,10 +261,10 @@ function map_to_curve_elligator2_curve25519(u: bigint) {
   let y = Fp.cmov(y2, y1, e3);  //  36.   y = CMOV(y2, y1, e3)    # If e3, y = y1, else y = y2
   let e4 = Fp.isOdd(y);         //  37.  e4 = sgn0(y) == 1        # Fix sign of y
   y = Fp.cmov(y, Fp.neg(y), e3 !== e4); //  38.   y = CMOV(y, -y, e3 XOR e4)
-  return { xMn: xn, xMd: xd, yMn: y, yMd: _1n }; //  39. return (xn, xd, y, 1)
+  return { xMn: xn, xMd: xd, yMn: y, yMd: 1n }; //  39. return (xn, xd, y, 1)
 }
 
-const ELL2_C1_EDWARDS = /* @__PURE__ */ (() => FpSqrtEven(Fp, Fp.neg(BigInt(486664))))(); // sgn0(c1) MUST equal 0
+const ELL2_C1_EDWARDS = /* @__PURE__ */ (() => FpSqrtEven(Fp, Fp.neg(486664n)))(); // sgn0(c1) MUST equal 0
 function map_to_curve_elligator2_edwards25519(u: bigint) {
   const { xMn, xMd, yMn, yMd } = map_to_curve_elligator2_curve25519(u); //  1.  (xMn, xMd, yMn, yMd) =
   // map_to_curve_elligator2_curve25519(u)
@@ -319,27 +308,17 @@ function aristp(other: unknown) {
 // √(-1) aka √(a) aka 2^((p-1)/4)
 const SQRT_M1 = ED25519_SQRT_M1;
 // √(ad - 1)
-const SQRT_AD_MINUS_ONE = /* @__PURE__ */ BigInt(
-  '25063068953384623474111414158702152701244531502492656460079210482610430750235'
-);
+const SQRT_AD_MINUS_ONE = /* @__PURE__ */ 25063068953384623474111414158702152701244531502492656460079210482610430750235n;
 // 1 / √(a-d)
-const INVSQRT_A_MINUS_D = /* @__PURE__ */ BigInt(
-  '54469307008909316920995813868745141605393597292927456921205312896311721017578'
-);
+const INVSQRT_A_MINUS_D = /* @__PURE__ */ 54469307008909316920995813868745141605393597292927456921205312896311721017578n;
 // 1-d²
-const ONE_MINUS_D_SQ = /* @__PURE__ */ BigInt(
-  '1159843021668779879193775521855586647937357759715417654439879720876111806838'
-);
+const ONE_MINUS_D_SQ = /* @__PURE__ */ 1159843021668779879193775521855586647937357759715417654439879720876111806838n;
 // (d-1)²
-const D_MINUS_ONE_SQ = /* @__PURE__ */ BigInt(
-  '40440834346308536858101042469323190826248399146238708352240133220865137265952'
-);
+const D_MINUS_ONE_SQ = /* @__PURE__ */ 40440834346308536858101042469323190826248399146238708352240133220865137265952n;
 // Calculates 1/√(number)
-const invertSqrt = (number: bigint) => uvRatio(_1n, number);
+const invertSqrt = (number: bigint) => uvRatio(1n, number);
 
-const MAX_255B = /* @__PURE__ */ BigInt(
-  '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
-);
+const MAX_255B = /* @__PURE__ */ 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffn;
 const bytes255ToNumberLE = (bytes: Uint8Array) =>
   ed25519.CURVE.Fp.create(bytesToNumberLE(bytes) & MAX_255B);
 
@@ -352,20 +331,20 @@ function calcElligatorRistrettoMap(r0: bigint): ExtendedPoint {
   const P = ed25519.CURVE.Fp.ORDER;
   const mod = ed25519.CURVE.Fp.create;
   const r = mod(SQRT_M1 * r0 * r0); // 1
-  const Ns = mod((r + _1n) * ONE_MINUS_D_SQ); // 2
-  let c = BigInt(-1); // 3
+  const Ns = mod((r + 1n) * ONE_MINUS_D_SQ); // 2
+  let c = (-1n); // 3
   const D = mod((c - d * r) * mod(r + d)); // 4
   let { isValid: Ns_D_is_sq, value: s } = uvRatio(Ns, D); // 5
   let s_ = mod(s * r0); // 6
   if (!isNegativeLE(s_, P)) s_ = mod(-s_);
   if (!Ns_D_is_sq) s = s_; // 7
   if (!Ns_D_is_sq) c = r; // 8
-  const Nt = mod(c * (r - _1n) * D_MINUS_ONE_SQ - D); // 9
+  const Nt = mod(c * (r - 1n) * D_MINUS_ONE_SQ - D); // 9
   const s2 = s * s;
   const W0 = mod((s + s) * D); // 10
   const W1 = mod(Nt * SQRT_AD_MINUS_ONE); // 11
-  const W2 = mod(_1n - s2); // 12
-  const W3 = mod(_1n + s2); // 13
+  const W2 = mod(1n - s2); // 12
+  const W3 = mod(1n + s2); // 13
   return new ed25519.ExtendedPoint(mod(W0 * W3), mod(W2 * W1), mod(W1 * W3), mod(W0 * W2));
 }
 
@@ -422,8 +401,8 @@ class RistPoint implements Group<RistPoint> {
     // 3. Check that s is non-negative, or else abort
     if (!equalBytes(numberToBytesLE(s, 32), hex) || isNegativeLE(s, P)) throw new Error(emsg);
     const s2 = mod(s * s);
-    const u1 = mod(_1n + a * s2); // 4 (a is -1)
-    const u2 = mod(_1n - a * s2); // 5
+    const u1 = mod(1n + a * s2); // 4 (a is -1)
+    const u2 = mod(1n - a * s2); // 5
     const u1_2 = mod(u1 * u1);
     const u2_2 = mod(u2 * u2);
     const v = mod(a * d * u1_2 - u2_2); // 6
@@ -434,8 +413,8 @@ class RistPoint implements Group<RistPoint> {
     if (isNegativeLE(x, P)) x = mod(-x); // 10
     const y = mod(u1 * Dy); // 11
     const t = mod(x * y); // 12
-    if (!isValid || isNegativeLE(t, P) || y === _0n) throw new Error(emsg);
-    return new RistPoint(new ed25519.ExtendedPoint(x, y, _1n, t));
+    if (!isValid || isNegativeLE(t, P) || y === 0n) throw new Error(emsg);
+    return new RistPoint(new ed25519.ExtendedPoint(x, y, 1n, t));
   }
 
   static msm(points: RistPoint[], scalars: bigint[]): RistPoint {

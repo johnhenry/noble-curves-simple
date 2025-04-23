@@ -83,26 +83,20 @@ import {
   type ProjPointType,
 } from './abstract/weierstrass.ts';
 
-// Be friendly to bad ECMAScript parsers by not using bigint literals
-// prettier-ignore
-const _0n = BigInt(0), _1n = BigInt(1), _2n = BigInt(2), _3n = BigInt(3), _4n = BigInt(4);
-
 // The BLS parameter x (seed) for BLS12-381. NOTE: it is negative!
-const BLS_X = BigInt('0xd201000000010000');
+const BLS_X = 0xd201000000010000n;
 const BLS_X_LEN = bitLen(BLS_X);
 
 // CURVE FIELDS
 const { Fp, Fp2, Fp6, Fp4Square, Fp12 } = tower12({
   // Order of Fp
-  ORDER: BigInt(
-    '0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab'
-  ),
+  ORDER: 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaabn,
   // Finite extension field over irreducible polynominal.
   // Fp(u) / (u² - β) where β = -1
-  FP2_NONRESIDUE: [_1n, _1n],
+  FP2_NONRESIDUE: [1n, 1n],
   Fp2mulByB: ({ c0, c1 }) => {
-    const t0 = Fp.mul(c0, _4n); // 4 * c0
-    const t1 = Fp.mul(c1, _4n); // 4 * c1
+    const t0 = Fp.mul(c0, 4n); // 4 * c0
+    const t1 = Fp.mul(c1, 4n); // 4 * c1
     // (T0-T1) + (T0+T1)*i
     return { c0: Fp.sub(t0, t1), c1: Fp.add(t0, t1) };
   },
@@ -120,14 +114,14 @@ const { Fp, Fp2, Fp6, Fp4Square, Fp12 } = tower12({
     const t9 = Fp2.mulByNonresidue(t8); // T8 * (u + 1)
     return {
       c0: Fp6.create({
-        c0: Fp2.add(Fp2.mul(Fp2.sub(t3, c0c0), _2n), t3), // 2 * (T3 - c0c0)  + T3
-        c1: Fp2.add(Fp2.mul(Fp2.sub(t5, c0c1), _2n), t5), // 2 * (T5 - c0c1)  + T5
-        c2: Fp2.add(Fp2.mul(Fp2.sub(t7, c0c2), _2n), t7),
+        c0: Fp2.add(Fp2.mul(Fp2.sub(t3, c0c0), 2n), t3), // 2 * (T3 - c0c0)  + T3
+        c1: Fp2.add(Fp2.mul(Fp2.sub(t5, c0c1), 2n), t5), // 2 * (T5 - c0c1)  + T5
+        c2: Fp2.add(Fp2.mul(Fp2.sub(t7, c0c2), 2n), t7),
       }), // 2 * (T7 - c0c2)  + T7
       c1: Fp6.create({
-        c0: Fp2.add(Fp2.mul(Fp2.add(t9, c1c0), _2n), t9), // 2 * (T9 + c1c0) + T9
-        c1: Fp2.add(Fp2.mul(Fp2.add(t4, c1c1), _2n), t4), // 2 * (T4 + c1c1) + T4
-        c2: Fp2.add(Fp2.mul(Fp2.add(t6, c1c2), _2n), t6),
+        c0: Fp2.add(Fp2.mul(Fp2.add(t9, c1c0), 2n), t9), // 2 * (T9 + c1c0) + T9
+        c1: Fp2.add(Fp2.mul(Fp2.add(t4, c1c1), 2n), t4), // 2 * (T4 + c1c1) + T4
+        c2: Fp2.add(Fp2.mul(Fp2.add(t6, c1c2), 2n), t6),
       }),
     }; // 2 * (T6 + c1c2) + T6
   },
@@ -164,7 +158,7 @@ const { Fp, Fp2, Fp6, Fp4Square, Fp12 } = tower12({
 
 // Finite field over r.
 // This particular field is not used anywhere in bls12-381, but it is still useful.
-const Fr = Field(BigInt('0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001'));
+const Fr = Field(0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001n);
 
 // END OF CURVE FIELDS
 
@@ -318,23 +312,19 @@ const isogenyMapG1 = isogenyMap(
 
 // SWU Map - Fp2 to G2': y² = x³ + 240i * x + 1012 + 1012i
 const G2_SWU = mapToCurveSimpleSWU(Fp2, {
-  A: Fp2.create({ c0: Fp.create(_0n), c1: Fp.create(BigInt(240)) }), // A' = 240 * I
-  B: Fp2.create({ c0: Fp.create(BigInt(1012)), c1: Fp.create(BigInt(1012)) }), // B' = 1012 * (1 + I)
-  Z: Fp2.create({ c0: Fp.create(BigInt(-2)), c1: Fp.create(BigInt(-1)) }), // Z: -(2 + I)
+  A: Fp2.create({ c0: Fp.create(0n), c1: Fp.create(240n) }), // A' = 240 * I
+  B: Fp2.create({ c0: Fp.create(1012n), c1: Fp.create(1012n) }), // B' = 1012 * (1 + I)
+  Z: Fp2.create({ c0: Fp.create(-2n), c1: Fp.create((-1n)) }), // Z: -(2 + I)
 });
 // Optimized SWU Map - Fp to G1
 const G1_SWU = mapToCurveSimpleSWU(Fp, {
   A: Fp.create(
-    BigInt(
-      '0x144698a3b8e9433d693a02c96d4982b0ea985383ee66a8d8e8981aefd881ac98936f8da0e0f97f5cf428082d584c1d'
-    )
+    0x144698a3b8e9433d693a02c96d4982b0ea985383ee66a8d8e8981aefd881ac98936f8da0e0f97f5cf428082d584c1dn
   ),
   B: Fp.create(
-    BigInt(
-      '0x12e2908d11688030018b12e8753eee3b2016c1f0f24f4070a0b9c14fcef35ef55a23215a316ceaa5d1cc48e98e172be0'
-    )
+    0x12e2908d11688030018b12e8753eee3b2016c1f0f24f4070a0b9c14fcef35ef55a23215a316ceaa5d1cc48e98e172be0n
   ),
-  Z: Fp.create(BigInt(11)),
+  Z: Fp.create(11n),
 });
 
 // Endomorphisms (for fast cofactor clearing)
@@ -379,7 +369,7 @@ const htfDefaults = Object.freeze({
 // Point on G1 curve: (x, y)
 
 // Compressed point of infinity
-const COMPRESSED_ZERO = setMask(Fp.toBytes(_0n), { infinity: true, compressed: true }); // set compressed & point-at-infinity bits
+const COMPRESSED_ZERO = setMask(Fp.toBytes(0n), { infinity: true, compressed: true }); // set compressed & point-at-infinity bits
 
 function parseMask(bytes: Uint8Array) {
   // Copy, so we can remove mask data. It will be removed also later, when Fp.create will call modulo.
@@ -409,7 +399,7 @@ function signatureG1ToRawBytes(point: ProjPointType<Fp>) {
   const { x, y } = point.toAffine();
   if (isZero) return COMPRESSED_ZERO.slice();
   const P = Fp.ORDER;
-  const sort = Boolean((y * _2n) / P);
+  const sort = Boolean((y * 2n) / P);
   return setMask(numberToBytesBE(x, Fp.BYTES), { compressed: true, sort });
 }
 
@@ -418,12 +408,12 @@ function signatureG2ToRawBytes(point: ProjPointType<Fp2>) {
   point.assertValidity();
   const len = Fp.BYTES;
   if (point.equals(bls12_381.G2.ProjectivePoint.ZERO))
-    return concatB(COMPRESSED_ZERO, numberToBytesBE(_0n, len));
+    return concatB(COMPRESSED_ZERO, numberToBytesBE(0n, len));
   const { x, y } = point.toAffine();
   const { re: x0, im: x1 } = Fp2.reim(x);
   const { re: y0, im: y1 } = Fp2.reim(y);
-  const tmp = y1 > _0n ? y1 * _2n : y0 * _2n;
-  const sort = Boolean((tmp / Fp.ORDER) & _1n);
+  const tmp = y1 > 0n ? y1 * 2n : y0 * 2n;
+  const sort = Boolean((tmp / Fp.ORDER) & 1n);
   const z2 = x0;
   return concatB(
     setMask(numberToBytesBE(x1, len), { sort, compressed: true }),
@@ -456,18 +446,14 @@ export const bls12_381: CurveFn = bls({
   G1: {
     Fp,
     // cofactor; (z - 1)²/3
-    h: BigInt('0x396c8c005555e1568c00aaab0000aaab'),
+    h: 0x396c8c005555e1568c00aaab0000aaabn,
     // generator's coordinates
     // x = 3685416753713387016781088315183077757961620795782546409894578378688607592378376318836054947676345821548104185464507
     // y = 1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569
-    Gx: BigInt(
-      '0x17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb'
-    ),
-    Gy: BigInt(
-      '0x08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1'
-    ),
+    Gx: 0x17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bbn,
+    Gy: 0x08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1n,
     a: Fp.ZERO,
-    b: _4n,
+    b: 4n,
     htfDefaults: { ...htfDefaults, m: 1, DST: 'BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_' },
     wrapPrivateKey: true,
     allowInfinityPoint: true,
@@ -477,9 +463,7 @@ export const bls12_381: CurveFn = bls({
     // https://eprint.iacr.org/2021/1130.pdf
     isTorsionFree: (c, point): boolean => {
       // φ endomorphism
-      const cubicRootOfUnityModP = BigInt(
-        '0x5f19672fdf76ce51ba69c6076a0f77eaddb3a93be6f89688de17d813620a00022e01fffffffefffe'
-      );
+      const cubicRootOfUnityModP = 0x5f19672fdf76ce51ba69c6076a0f77eaddb3a93be6f89688de17d813620a00022e01fffffffefffen;
       const phi = new c(Fp.mul(point.px, cubicRootOfUnityModP), point.py, point.pz);
 
       // todo: unroll
@@ -489,7 +473,7 @@ export const bls12_381: CurveFn = bls({
 
       // https://eprint.iacr.org/2019/814.pdf
       // (z² − 1)/3
-      // const c1 = BigInt('0x396c8c005555e1560000000055555555');
+      // const c1 = 0x396c8c005555e1560000000055555555n;
       // const P = this;
       // const S = P.sigma();
       // const Q = S.double();
@@ -518,20 +502,20 @@ export const bls12_381: CurveFn = bls({
         // Zero
         const x = Fp.create(compressedValue & Fp.MASK);
         if (infinity) {
-          if (x !== _0n) throw new Error('G1: non-empty compressed point at infinity');
-          return { x: _0n, y: _0n };
+          if (x !== 0n) throw new Error('G1: non-empty compressed point at infinity');
+          return { x: 0n, y: 0n };
         }
-        const right = Fp.add(Fp.pow(x, _3n), Fp.create(bls12_381.params.G1b)); // y² = x³ + b
+        const right = Fp.add(Fp.pow(x, 3n), Fp.create(bls12_381.params.G1b)); // y² = x³ + b
         let y = Fp.sqrt(right);
         if (!y) throw new Error('invalid compressed G1 point');
-        if ((y * _2n) / P !== BigInt(sort)) y = Fp.neg(y);
+        if ((y * 2n) / P !== BigInt(sort)) y = Fp.neg(y);
         return { x: Fp.create(x), y: Fp.create(y) };
       } else if (value.length === 96 && !compressed) {
         // Check if the infinity flag is set
         const x = bytesToNumberBE(value.subarray(0, Fp.BYTES));
         const y = bytesToNumberBE(value.subarray(Fp.BYTES));
         if (infinity) {
-          if (x !== _0n || y !== _0n) throw new Error('G1: non-empty point at infinity');
+          if (x !== 0n || y !== 0n) throw new Error('G1: non-empty point at infinity');
           return bls12_381.G1.ProjectivePoint.ZERO.toAffine();
         }
         return { x: Fp.create(x), y: Fp.create(y) };
@@ -545,7 +529,7 @@ export const bls12_381: CurveFn = bls({
       if (isCompressed) {
         if (isZero) return COMPRESSED_ZERO.slice();
         const P = Fp.ORDER;
-        const sort = Boolean((y * _2n) / P);
+        const sort = Boolean((y * 2n) / P);
         return setMask(numberToBytesBE(x, Fp.BYTES), { compressed: true, sort });
       } else {
         if (isZero) {
@@ -565,11 +549,11 @@ export const bls12_381: CurveFn = bls({
         // Zero
         if (infinity) return bls12_381.G1.ProjectivePoint.ZERO;
         const x = Fp.create(compressedValue & Fp.MASK);
-        const right = Fp.add(Fp.pow(x, _3n), Fp.create(bls12_381.params.G1b)); // y² = x³ + b
+        const right = Fp.add(Fp.pow(x, 3n), Fp.create(bls12_381.params.G1b)); // y² = x³ + b
         let y = Fp.sqrt(right);
         if (!y) throw new Error('invalid compressed G1 point');
         const aflag = BigInt(sort);
-        if ((y * _2n) / P !== aflag) y = Fp.neg(y);
+        if ((y * 2n) / P !== aflag) y = Fp.neg(y);
         const point = bls12_381.G1.ProjectivePoint.fromAffine({ x, y });
         point.assertValidity();
         return point;
@@ -589,33 +573,21 @@ export const bls12_381: CurveFn = bls({
   G2: {
     Fp: Fp2,
     // cofactor
-    h: BigInt(
-      '0x5d543a95414e7f1091d50792876a202cd91de4547085abaa68a205b2e5a7ddfa628f1cb4d9e82ef21537e293a6691ae1616ec6e786f0c70cf1c38e31c7238e5'
-    ),
+    h: 0x5d543a95414e7f1091d50792876a202cd91de4547085abaa68a205b2e5a7ddfa628f1cb4d9e82ef21537e293a6691ae1616ec6e786f0c70cf1c38e31c7238e5n,
     Gx: Fp2.fromBigTuple([
-      BigInt(
-        '0x024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb8'
-      ),
-      BigInt(
-        '0x13e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e'
-      ),
+      0x024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb8n,
+      0x13e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7en,
     ]),
     // y =
     // 927553665492332455747201965776037880757740193453592970025027978793976877002675564980949289727957565575433344219582,
     // 1985150602287291935568054521177171638300868978215655730859378665066344726373823718423869104263333984641494340347905
     Gy: Fp2.fromBigTuple([
-      BigInt(
-        '0x0ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801'
-      ),
-      BigInt(
-        '0x0606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be'
-      ),
+      0x0ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801n,
+      0x0606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79ben,
     ]),
     a: Fp2.ZERO,
-    b: Fp2.fromBigTuple([_4n, _4n]),
-    hEff: BigInt(
-      '0xbc69f08f2ee75b3584c6a0ea91b352888e2a8e9145ad7689986ff031508ffe1329c2f178731db956d82bf015d1212b02ec0ec69d7477c1ae954cbc06689f6a359894c0adebbf6b4e8020005aaa95551'
-    ),
+    b: Fp2.fromBigTuple([4n, 4n]),
+    hEff: 0xbc69f08f2ee75b3584c6a0ea91b352888e2a8e9145ad7689986ff031508ffe1329c2f178731db956d82bf015d1212b02ec0ec69d7477c1ae954cbc06689f6a359894c0adebbf6b4e8020005aaa95551n,
     htfDefaults: { ...htfDefaults },
     wrapPrivateKey: true,
     allowInfinityPoint: true,
@@ -675,9 +647,9 @@ export const bls12_381: CurveFn = bls({
         const x_1 = slc(value, 0, L);
         const x_0 = slc(value, L, 2 * L);
         const x = Fp2.create({ c0: Fp.create(x_0), c1: Fp.create(x_1) });
-        const right = Fp2.add(Fp2.pow(x, _3n), b); // y² = x³ + 4 * (u+1) = x³ + b
+        const right = Fp2.add(Fp2.pow(x, 3n), b); // y² = x³ + 4 * (u+1) = x³ + b
         let y = Fp2.sqrt(right);
-        const Y_bit = y.c1 === _0n ? (y.c0 * _2n) / P : (y.c1 * _2n) / P ? _1n : _0n;
+        const Y_bit = y.c1 === 0n ? (y.c0 * 2n) / P : (y.c1 * 2n) / P ? 1n : 0n;
         y = sort && Y_bit > 0 ? y : Fp2.neg(y);
         return { x, y };
       } else if (value.length === 192 && !compressed) {
@@ -701,8 +673,8 @@ export const bls12_381: CurveFn = bls({
       const isZero = point.equals(c.ZERO);
       const { x, y } = point.toAffine();
       if (isCompressed) {
-        if (isZero) return concatB(COMPRESSED_ZERO, numberToBytesBE(_0n, len));
-        const flag = Boolean(y.c1 === _0n ? (y.c0 * _2n) / P : (y.c1 * _2n) / P);
+        if (isZero) return concatB(COMPRESSED_ZERO, numberToBytesBE(0n, len));
+        const flag = Boolean(y.c1 === 0n ? (y.c0 * 2n) / P : (y.c1 * 2n) / P);
         return concatB(
           setMask(numberToBytesBE(x.c1, len), { compressed: true, sort: flag }),
           numberToBytesBE(x.c0, len)
@@ -734,7 +706,7 @@ export const bls12_381: CurveFn = bls({
         const x1 = Fp.create(z1 & Fp.MASK);
         const x2 = Fp.create(z2);
         const x = Fp2.create({ c0: x2, c1: x1 });
-        const y2 = Fp2.add(Fp2.pow(x, _3n), bls12_381.params.G2b); // y² = x³ + 4
+        const y2 = Fp2.add(Fp2.pow(x, 3n), bls12_381.params.G2b); // y² = x³ + 4
         // The slow part
         let y = Fp2.sqrt(y2);
         if (!y) throw new Error('Failed to find a square root');
@@ -743,8 +715,8 @@ export const bls12_381: CurveFn = bls({
         // If y1 happens to be zero, then use the bit of y0
         const { re: y0, im: y1 } = Fp2.reim(y);
         const aflag1 = BigInt(sort);
-        const isGreater = y1 > _0n && (y1 * _2n) / P !== aflag1;
-        const isZero = y1 === _0n && (y0 * _2n) / P !== aflag1;
+        const isGreater = y1 > 0n && (y1 * 2n) / P !== aflag1;
+        const isZero = y1 === 0n && (y0 * 2n) / P !== aflag1;
         if (isGreater || isZero) y = Fp2.neg(y);
         const point = bls12_381.G2.ProjectivePoint.fromAffine({ x, y });
         point.assertValidity();

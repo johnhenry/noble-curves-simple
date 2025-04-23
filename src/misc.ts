@@ -19,34 +19,34 @@ import { type CurveFn as WCurveFn, weierstrass } from './abstract/weierstrass.ts
 // https://neuromancer.sk/std/other/JubJub
 
 const bls12_381_Fr = Field(
-  BigInt('0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001')
+  0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001n
 );
 const bn254_Fr = Field(
-  BigInt('21888242871839275222246405745257275088548364400416034343698204186575808495617')
+  21888242871839275222246405745257275088548364400416034343698204186575808495617n
 );
 
 /** Curve over scalar field of bls12-381. jubjub Fp = bls n */
 export const jubjub: CurveFn = /* @__PURE__ */ twistedEdwards({
-  a: BigInt('0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000000'),
-  d: BigInt('0x2a9318e74bfa2b48f5fd9207e6bd7fd4292d7f6d37579d2601065fd6d6343eb1'),
+  a: 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000000n,
+  d: 0x2a9318e74bfa2b48f5fd9207e6bd7fd4292d7f6d37579d2601065fd6d6343eb1n,
   Fp: bls12_381_Fr,
-  n: BigInt('0xe7db4ea6533afa906673b0101343b00a6682093ccc81082d0970e5ed6f72cb7'),
-  h: BigInt(8),
-  Gx: BigInt('0x11dafe5d23e1218086a365b99fbf3d3be72f6afd7d1f72623e6b071492d1122b'),
-  Gy: BigInt('0x1d523cf1ddab1a1793132e78c866c0c33e26ba5cc220fed7cc3f870e59d292aa'),
+  n: 0xe7db4ea6533afa906673b0101343b00a6682093ccc81082d0970e5ed6f72cb7n,
+  h: 8n,
+  Gx: 0x11dafe5d23e1218086a365b99fbf3d3be72f6afd7d1f72623e6b071492d1122bn,
+  Gy: 0x1d523cf1ddab1a1793132e78c866c0c33e26ba5cc220fed7cc3f870e59d292aan,
   hash: sha512,
   randomBytes,
 } as const);
 
 /** Curve over scalar field of bn254. babyjubjub Fp = bn254 n */
 export const babyjubjub: CurveFn = /* @__PURE__ */ twistedEdwards({
-  a: BigInt(168700),
-  d: BigInt(168696),
+  a: 168700n,
+  d: 168696n,
   Fp: bn254_Fr,
-  n: BigInt('21888242871839275222246405745257275088614511777268538073601725287587578984328'),
-  h: BigInt(8),
-  Gx: BigInt('995203441582195749578291179787384436505546430278305826713579947235728471134'),
-  Gy: BigInt('5472060717959818805561601436314318772137091100104008585924551046643952123905'),
+  n: 21888242871839275222246405745257275088614511777268538073601725287587578984328n,
+  h: 8n,
+  Gx: 995203441582195749578291179787384436505546430278305826713579947235728471134n,
+  Gy: 5472060717959818805561601436314318772137091100104008585924551046643952123905n,
   hash: blake256,
   randomBytes,
 } as const);
@@ -86,25 +86,21 @@ export function jubjub_findGroupHash(m: Uint8Array, personalization: Uint8Array)
 
 // Pasta curves. See [Spec](https://o1-labs.github.io/proof-systems/specs/pasta.html).
 
-export const pasta_p: bigint = BigInt(
-  '0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001'
-);
-export const pasta_q: bigint = BigInt(
-  '0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001'
-);
+export const pasta_p: bigint = 0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001n;
+export const pasta_q: bigint = 0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001n;
 
 /**
  * https://neuromancer.sk/std/other/Pallas
  * @deprecated
  */
 export const pallas: WCurveFn = weierstrass({
-  a: BigInt(0),
-  b: BigInt(5),
+  a: 0n,
+  b: 5n,
   Fp: Field(pasta_p),
   n: pasta_q,
-  Gx: mod(BigInt(-1), pasta_p),
-  Gy: BigInt(2),
-  h: BigInt(1),
+  Gx: mod((-1n), pasta_p),
+  Gy: 2n,
+  h: 1n,
   ...getHash(sha256),
 });
 /**
@@ -112,12 +108,12 @@ export const pallas: WCurveFn = weierstrass({
  * @deprecated
  */
 export const vesta: WCurveFn = weierstrass({
-  a: BigInt(0),
-  b: BigInt(5),
+  a: 0n,
+  b: 5n,
   Fp: Field(pasta_q),
   n: pasta_p,
-  Gx: mod(BigInt(-1), pasta_q),
-  Gy: BigInt(2),
-  h: BigInt(1),
+  Gx: mod((-1n), pasta_q),
+  Gy: 2n,
+  h: 1n,
   ...getHash(sha256),
 });

@@ -16,17 +16,10 @@ import {
   validateObject,
 } from './utils.ts';
 
-// prettier-ignore
-const _0n = BigInt(0), _1n = BigInt(1), _2n = /* @__PURE__ */ BigInt(2), _3n = /* @__PURE__ */ BigInt(3);
-// prettier-ignore
-const _4n = /* @__PURE__ */ BigInt(4), _5n = /* @__PURE__ */ BigInt(5), _8n = /* @__PURE__ */ BigInt(8);
-// prettier-ignore
-const _9n =/* @__PURE__ */ BigInt(9), _16n = /* @__PURE__ */ BigInt(16);
-
 // Calculates a modulo b
 export function mod(a: bigint, b: bigint): bigint {
   const result = a % b;
-  return result >= _0n ? result : b + result;
+  return result >= 0n ? result : b + result;
 }
 /**
  * Efficiently raise num to power and do modular division.
@@ -36,14 +29,14 @@ export function mod(a: bigint, b: bigint): bigint {
  * pow(2n, 6n, 11n) // 64n % 11n == 9n
  */
 export function pow(num: bigint, power: bigint, modulo: bigint): bigint {
-  if (power < _0n) throw new Error('invalid exponent, negatives unsupported');
-  if (modulo <= _0n) throw new Error('invalid modulus');
-  if (modulo === _1n) return _0n;
-  let res = _1n;
-  while (power > _0n) {
-    if (power & _1n) res = (res * num) % modulo;
+  if (power < 0n) throw new Error('invalid exponent, negatives unsupported');
+  if (modulo <= 0n) throw new Error('invalid modulus');
+  if (modulo === 1n) return 0n;
+  let res = 1n;
+  while (power > 0n) {
+    if (power & 1n) res = (res * num) % modulo;
     num = (num * num) % modulo;
-    power >>= _1n;
+    power >>= 1n;
   }
   return res;
 }
@@ -51,7 +44,7 @@ export function pow(num: bigint, power: bigint, modulo: bigint): bigint {
 /** Does `x^(2^power)` mod p. `pow2(30, 4)` == `30^(2^4)` */
 export function pow2(x: bigint, power: bigint, modulo: bigint): bigint {
   let res = x;
-  while (power-- > _0n) {
+  while (power-- > 0n) {
     res *= res;
     res %= modulo;
   }
@@ -63,14 +56,14 @@ export function pow2(x: bigint, power: bigint, modulo: bigint): bigint {
  * Implemented using [Euclidean GCD](https://brilliant.org/wiki/extended-euclidean-algorithm/).
  */
 export function invert(number: bigint, modulo: bigint): bigint {
-  if (number === _0n) throw new Error('invert: expected non-zero number');
-  if (modulo <= _0n) throw new Error('invert: expected positive modulus, got ' + modulo);
+  if (number === 0n) throw new Error('invert: expected non-zero number');
+  if (modulo <= 0n) throw new Error('invert: expected positive modulus, got ' + modulo);
   // Fermat's little theorem "CT-like" version inv(n) = n^(m-2) mod m is 30x slower.
   let a = mod(number, modulo);
   let b = modulo;
   // prettier-ignore
-  let x = _0n, y = _1n, u = _1n, v = _0n;
-  while (a !== _0n) {
+  let x = 0n, y = 1n, u = 1n, v = 0n;
+  while (a !== 0n) {
     // JIT applies optimization if those two lines follow each other
     const q = b / a;
     const r = b % a;
@@ -80,7 +73,7 @@ export function invert(number: bigint, modulo: bigint): bigint {
     b = a, a = r, x = u, y = v, u = m, v = n;
   }
   const gcd = b;
-  if (gcd !== _1n) throw new Error('invert: does not exist');
+  if (gcd !== 1n) throw new Error('invert: does not exist');
   return mod(x, modulo);
 }
 
@@ -95,15 +88,15 @@ export function tonelliShanks(P: bigint): <T>(Fp: IField<T>, n: T) => T {
   // Do expensive precomputation step
   // Step 1: By factoring out powers of 2 from p - 1,
   // find q and s such that p-1 == q*(2^s) with q odd
-  let Q = P - _1n;
+  let Q = P - 1n;
   let S = 0;
-  while (Q % _2n === _0n) {
-    Q /= _2n;
+  while (Q % 2n === 0n) {
+    Q /= 2n;
     S++;
   }
 
   // Step 2: Select a non-square z such that (z | p) ≡ -1 and set c ≡ zq
-  let Z = _2n;
+  let Z = 2n;
   const _Fp = Field(P);
   while (Z < P && FpIsSquare(_Fp, Z)) {
     if (Z++ > 1000) throw new Error('Cannot find square root: probably non-prime P');
@@ -111,7 +104,7 @@ export function tonelliShanks(P: bigint): <T>(Fp: IField<T>, n: T) => T {
 
   // Fast-path
   if (S === 1) {
-    const p1div4 = (P + _1n) / _4n;
+    const p1div4 = (P + 1n) / 4n;
     return function tonelliFast<T>(Fp: IField<T>, n: T) {
       const root = Fp.pow(n, p1div4);
       if (!Fp.eql(Fp.sqr(root), n)) throw new Error('Cannot find square root');
@@ -119,7 +112,7 @@ export function tonelliShanks(P: bigint): <T>(Fp: IField<T>, n: T) => T {
     };
   }
   // Slow-path
-  const Q1div2 = (Q + _1n) / _2n;
+  const Q1div2 = (Q + 1n) / 2n;
   return function tonelliSlow<T>(Fp: IField<T>, n: T): T {
     // Step 0: Check that n is indeed a square: (n | p) should not be ≡ -1
     if (!FpIsSquare(Fp, n)) throw new Error('Cannot find square root');
@@ -141,7 +134,7 @@ export function tonelliShanks(P: bigint): <T>(Fp: IField<T>, n: T) => T {
       }
       // NOTE: r-m-1 can be bigger than 32, need to convert to bigint before shift,
       // otherwise there will be overflow.
-      const ge = Fp.pow(g, _1n << BigInt(r - m - 1)); // ge = 2^(r-m-1)
+      const ge = Fp.pow(g, 1n << BigInt(r - m - 1)); // ge = 2^(r-m-1)
       g = Fp.sqr(ge); // g = ge * ge
       x = Fp.mul(x, ge); // x *= ge
       b = Fp.mul(b, g); // b *= g
@@ -165,13 +158,13 @@ export function tonelliShanks(P: bigint): <T>(Fp: IField<T>, n: T) => T {
 export function FpSqrt(P: bigint): <T>(Fp: IField<T>, n: T) => T {
   // P ≡ 3 (mod 4)
   // √n = n^((P+1)/4)
-  if (P % _4n === _3n) {
+  if (P % 4n === 3n) {
     // Not all roots possible!
     // const ORDER =
     //   0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaabn;
     // const NUM = 72057594037927816n;
     return function sqrt3mod4<T>(Fp: IField<T>, n: T) {
-      const p1div4 = (P + _1n) / _4n;
+      const p1div4 = (P + 1n) / 4n;
       const root = Fp.pow(n, p1div4);
       // Throw if root**2 != n
       if (!Fp.eql(Fp.sqr(root), n)) throw new Error('Cannot find square root');
@@ -180,13 +173,13 @@ export function FpSqrt(P: bigint): <T>(Fp: IField<T>, n: T) => T {
   }
 
   // Atkin algorithm for q ≡ 5 (mod 8), https://eprint.iacr.org/2012/685.pdf (page 10)
-  if (P % _8n === _5n) {
+  if (P % 8n === 5n) {
     return function sqrt5mod8<T>(Fp: IField<T>, n: T) {
-      const n2 = Fp.mul(n, _2n);
-      const c1 = (P - _5n) / _8n;
+      const n2 = Fp.mul(n, 2n);
+      const c1 = (P - 5n) / 8n;
       const v = Fp.pow(n2, c1);
       const nv = Fp.mul(n, v);
-      const i = Fp.mul(Fp.mul(nv, _2n), v);
+      const i = Fp.mul(Fp.mul(nv, 2n), v);
       const root = Fp.mul(nv, Fp.sub(i, Fp.ONE));
       if (!Fp.eql(Fp.sqr(root), n)) throw new Error('Cannot find square root');
       return root;
@@ -194,14 +187,14 @@ export function FpSqrt(P: bigint): <T>(Fp: IField<T>, n: T) => T {
   }
 
   // P ≡ 9 (mod 16)
-  if (P % _16n === _9n) {
+  if (P % 16n === 9n) {
     // NOTE: tonelli is too slow for bls-Fp2 calculations even on start
     // Means we cannot use sqrt for constants at all!
     //
     // const c1 = Fp.sqrt(Fp.negate(Fp.ONE)); //  1. c1 = sqrt(-1) in F, i.e., (c1^2) == -1 in F
     // const c2 = Fp.sqrt(c1);                //  2. c2 = sqrt(c1) in F, i.e., (c2^2) == c1 in F
     // const c3 = Fp.sqrt(Fp.negate(c1));     //  3. c3 = sqrt(-c1) in F, i.e., (c3^2) == -c1 in F
-    // const c4 = (P + _7n) / _16n;           //  4. c4 = (q + 7) / 16        # Integer arithmetic
+    // const c4 = (P + 7n) / 16n;           //  4. c4 = (q + 7) / 16        # Integer arithmetic
     // sqrt = (x) => {
     //   let tv1 = Fp.pow(x, c4);             //  1. tv1 = x^c4
     //   let tv2 = Fp.mul(c1, tv1);           //  2. tv2 = c1 * tv1
@@ -221,7 +214,7 @@ export function FpSqrt(P: bigint): <T>(Fp: IField<T>, n: T) => T {
 
 // Little-endian check for first LE bit (last BE bit);
 export const isNegativeLE = (num: bigint, modulo: bigint): boolean =>
-  (mod(num, modulo) & _1n) === _1n;
+  (mod(num, modulo) & 1n) === 1n;
 
 /** Field is not always over prime: for example, Fp2 has ORDER(q)=p^m. */
 export interface IField<T> {
@@ -293,16 +286,16 @@ export function validateField<T>(field: IField<T>): IField<T> {
  * Unsafe in some contexts: uses ladder, so can expose bigint bits.
  */
 export function FpPow<T>(Fp: IField<T>, num: T, power: bigint): T {
-  if (power < _0n) throw new Error('invalid exponent, negatives unsupported');
-  if (power === _0n) return Fp.ONE;
-  if (power === _1n) return num;
+  if (power < 0n) throw new Error('invalid exponent, negatives unsupported');
+  if (power === 0n) return Fp.ONE;
+  if (power === 1n) return num;
   // @ts-ignore
   let p = Fp.ONE;
   let d = num;
-  while (power > _0n) {
-    if (power & _1n) p = Fp.mul(p, d);
+  while (power > 0n) {
+    if (power & 1n) p = Fp.mul(p, d);
     d = Fp.sqr(d);
-    power >>= _1n;
+    power >>= 1n;
   }
   return p;
 }
@@ -346,7 +339,7 @@ export function FpDiv<T>(Fp: IField<T>, lhs: T, rhs: T | bigint): T {
  * * (a | p) ≡ 0    if a ≡ 0 (mod p)
  */
 export function FpLegendre<T>(Fp: IField<T>, n: T): number {
-  const legc = (Fp.ORDER - _1n) / _2n;
+  const legc = (Fp.ORDER - 1n) / 2n;
   const powered = Fp.pow(n, legc);
   const yes = Fp.eql(powered, Fp.ONE);
   const zero = Fp.eql(powered, Fp.ZERO);
@@ -398,7 +391,7 @@ export function Field(
   isLE = false,
   redef: Partial<IField<bigint>> = {}
 ): Readonly<FpField> {
-  if (ORDER <= _0n) throw new Error('invalid field: expected ORDER > 0, got ' + ORDER);
+  if (ORDER <= 0n) throw new Error('invalid field: expected ORDER > 0, got ' + ORDER);
   const { nBitLength: BITS, nByteLength: BYTES } = nLength(ORDER, bitLen);
   if (BYTES > 2048) throw new Error('invalid field: expected ORDER of <= 2048 bytes');
   let sqrtP: ReturnType<typeof FpSqrt>; // cached sqrtP
@@ -408,16 +401,16 @@ export function Field(
     BITS,
     BYTES,
     MASK: bitMask(BITS),
-    ZERO: _0n,
-    ONE: _1n,
+    ZERO: 0n,
+    ONE: 1n,
     create: (num) => mod(num, ORDER),
     isValid: (num) => {
       if (typeof num !== 'bigint')
         throw new Error('invalid field element: expected bigint, got ' + typeof num);
-      return _0n <= num && num < ORDER; // 0 is valid element, but it's not invertible
+      return 0n <= num && num < ORDER; // 0 is valid element, but it's not invertible
     },
-    is0: (num) => num === _0n,
-    isOdd: (num) => (num & _1n) === _1n,
+    is0: (num) => num === 0n,
+    isOdd: (num) => (num & 1n) === 1n,
     neg: (num) => mod(-num, ORDER),
     eql: (lhs, rhs) => lhs === rhs,
 
@@ -487,7 +480,7 @@ export function hashToPrivateScalar(
       'hashToPrivateScalar: expected ' + minLen + '-1024 bytes of input, got ' + hashLen
     );
   const num = isLE ? bytesToNumberLE(hash) : bytesToNumberBE(hash);
-  return mod(num, groupOrder - _1n) + _1n;
+  return mod(num, groupOrder - 1n) + 1n;
 }
 
 /**
@@ -536,6 +529,6 @@ export function mapHashToField(key: Uint8Array, fieldOrder: bigint, isLE = false
     throw new Error('expected ' + minLen + '-1024 bytes of input, got ' + len);
   const num = isLE ? bytesToNumberLE(key) : bytesToNumberBE(key);
   // `mod(x, 11)` can sometimes produce 0. `mod(x, 10) + 1` is the same, but no 0
-  const reduced = mod(num, fieldOrder - _1n) + _1n;
+  const reduced = mod(num, fieldOrder - 1n) + 1n;
   return isLE ? numberToBytesLE(reduced, fieldLen) : numberToBytesBE(reduced, fieldLen);
 }

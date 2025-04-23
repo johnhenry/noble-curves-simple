@@ -253,7 +253,7 @@ export const DER: IDER = {
   _int: {
     encode(num: bigint): string {
       const { Err: E } = DER;
-      if (num < _0n) throw new E('integer: negative integers are not allowed');
+      if (num < 0n) throw new E('integer: negative integers are not allowed');
       let hex = numberToHexUnpadded(num);
       // Pad with zero byte if negative flag is present
       if (Number.parseInt(hex[0], 16) & 0b1000) hex = '00' + hex;
@@ -287,10 +287,6 @@ export const DER: IDER = {
     return tlv.encode(0x30, seq);
   },
 };
-
-// Be friendly to bad ECMAScript parsers by not using bigint literals
-// prettier-ignore
-const _0n = BigInt(0), _1n = BigInt(1), _2n = BigInt(2), _3n = BigInt(3), _4n = BigInt(4);
 
 export function weierstrassPoints<T>(opts: CurvePointsType<T>): CurvePointsRes<T> {
   const CURVE = validatePointOpts(opts);
@@ -333,7 +329,7 @@ export function weierstrassPoints<T>(opts: CurvePointsType<T>): CurvePointsRes<T
 
   // Valid group elements reside in range 1..n-1
   function isWithinCurveOrder(num: bigint): boolean {
-    return inRange(num, _1n, CURVE.n);
+    return inRange(num, 1n, CURVE.n);
   }
   // Validates if priv key is valid and converts it to bigint.
   // Supports options allowedPrivateKeyLengths and wrapPrivateKey.
@@ -358,7 +354,7 @@ export function weierstrassPoints<T>(opts: CurvePointsType<T>): CurvePointsRes<T
       );
     }
     if (wrapPrivateKey) num = mod(num, N); // disabled by default, enabled for BLS
-    aInRange('private key', num, _1n, N); // num in range [1..N-1]
+    aInRange('private key', num, 1n, N); // num in range [1..N-1]
     return num;
   }
 
@@ -523,7 +519,7 @@ export function weierstrassPoints<T>(opts: CurvePointsType<T>): CurvePointsRes<T
     // Cost: 8M + 3S + 3*a + 2*b3 + 15add.
     double() {
       const { a, b } = CURVE;
-      const b3 = Fp.mul(b, _3n);
+      const b3 = Fp.mul(b, 3n);
       const { px: X1, py: Y1, pz: Z1 } = this;
       let X3 = Fp.ZERO, Y3 = Fp.ZERO, Z3 = Fp.ZERO; // prettier-ignore
       let t0 = Fp.mul(X1, X1); // step 1
@@ -570,7 +566,7 @@ export function weierstrassPoints<T>(opts: CurvePointsType<T>): CurvePointsRes<T
       const { px: X2, py: Y2, pz: Z2 } = other;
       let X3 = Fp.ZERO, Y3 = Fp.ZERO, Z3 = Fp.ZERO; // prettier-ignore
       const a = CURVE.a;
-      const b3 = Fp.mul(CURVE.b, _3n);
+      const b3 = Fp.mul(CURVE.b, 3n);
       let t0 = Fp.mul(X1, X2); // step 1
       let t1 = Fp.mul(Y1, Y2);
       let t2 = Fp.mul(Z1, Z2);
@@ -633,10 +629,10 @@ export function weierstrassPoints<T>(opts: CurvePointsType<T>): CurvePointsRes<T
      */
     multiplyUnsafe(sc: bigint): Point {
       const { endo, n: N } = CURVE;
-      aInRange('scalar', sc, _0n, N);
+      aInRange('scalar', sc, 0n, N);
       const I = Point.ZERO;
-      if (sc === _0n) return I;
-      if (this.is0() || sc === _1n) return this;
+      if (sc === 0n) return I;
+      if (this.is0() || sc === 1n) return this;
 
       // Case a: no endomorphism. Case b: has precomputes.
       if (!endo || wnaf.hasPrecomputes(this))
@@ -647,12 +643,12 @@ export function weierstrassPoints<T>(opts: CurvePointsType<T>): CurvePointsRes<T
       let k1p = I;
       let k2p = I;
       let d: Point = this;
-      while (k1 > _0n || k2 > _0n) {
-        if (k1 & _1n) k1p = k1p.add(d);
-        if (k2 & _1n) k2p = k2p.add(d);
+      while (k1 > 0n || k2 > 0n) {
+        if (k1 & 1n) k1p = k1p.add(d);
+        if (k2 & 1n) k2p = k2p.add(d);
         d = d.double();
-        k1 >>= _1n;
-        k2 >>= _1n;
+        k1 >>= 1n;
+        k2 >>= 1n;
       }
       if (k1neg) k1p = k1p.negate();
       if (k2neg) k2p = k2p.negate();
@@ -671,7 +667,7 @@ export function weierstrassPoints<T>(opts: CurvePointsType<T>): CurvePointsRes<T
      */
     multiply(scalar: bigint): Point {
       const { endo, n: N } = CURVE;
-      aInRange('scalar', scalar, _1n, N);
+      aInRange('scalar', scalar, 1n, N);
       let point: Point, fake: Point; // Fake point is used to const-time mult
       if (endo) {
         const { k1neg, k1, k2neg, k2 } = endo.splitScalar(scalar);
@@ -702,7 +698,7 @@ export function weierstrassPoints<T>(opts: CurvePointsType<T>): CurvePointsRes<T
       const mul = (
         P: Point,
         a: bigint // Select faster multiply() method
-      ) => (a === _0n || a === _1n || !P.equals(G) ? P.multiplyUnsafe(a) : P.multiply(a));
+      ) => (a === 0n || a === 1n || !P.equals(G) ? P.multiplyUnsafe(a) : P.multiply(a));
       const sum = mul(this, a).add(mul(Q, b));
       return sum.is0() ? undefined : sum;
     }
@@ -715,13 +711,13 @@ export function weierstrassPoints<T>(opts: CurvePointsType<T>): CurvePointsRes<T
     }
     isTorsionFree(): boolean {
       const { h: cofactor, isTorsionFree } = CURVE;
-      if (cofactor === _1n) return true; // No subgroups, always torsion-free
+      if (cofactor === 1n) return true; // No subgroups, always torsion-free
       if (isTorsionFree) return isTorsionFree(Point, this);
       throw new Error('isTorsionFree() has not been declared for the elliptic curve');
     }
     clearCofactor(): Point {
       const { h: cofactor, clearCofactor } = CURVE;
-      if (cofactor === _1n) return this; // Fast-path
+      if (cofactor === 1n) return this; // Fast-path
       if (clearCofactor) return clearCofactor(Point, this) as Point;
       return this.multiplyUnsafe(CURVE.h);
     }
@@ -866,7 +862,7 @@ export function weierstrass(curveDef: CurveType): CurveFn {
       // this.assertValidity() is done inside of fromHex
       if (len === compressedLen && (head === 0x02 || head === 0x03)) {
         const x = bytesToNumberBE(tail);
-        if (!inRange(x, _1n, Fp.ORDER)) throw new Error('Point is not on curve');
+        if (!inRange(x, 1n, Fp.ORDER)) throw new Error('Point is not on curve');
         const y2 = weierstrassEquation(x); // y² = x³ + ax + b
         let y: bigint;
         try {
@@ -875,7 +871,7 @@ export function weierstrass(curveDef: CurveType): CurveFn {
           const suffix = sqrtError instanceof Error ? ': ' + sqrtError.message : '';
           throw new Error('Point is not on curve' + suffix);
         }
-        const isYOdd = (y & _1n) === _1n;
+        const isYOdd = (y & 1n) === 1n;
         // ECDSA
         const isHeadOdd = (head & 1) === 1;
         if (isHeadOdd !== isYOdd) y = Fp.neg(y);
@@ -897,7 +893,7 @@ export function weierstrass(curveDef: CurveType): CurveFn {
     bytesToHex(numberToBytesBE(num, CURVE.nByteLength));
 
   function isBiggerThanHalfOrder(number: bigint) {
-    const HALF = CURVE_ORDER >> _1n;
+    const HALF = CURVE_ORDER >> 1n;
     return number > HALF;
   }
 
@@ -915,8 +911,8 @@ export function weierstrass(curveDef: CurveType): CurveFn {
     readonly s: bigint;
     readonly recovery?: number;
     constructor(r: bigint, s: bigint, recovery?: number) {
-      aInRange('r', r, _1n, CURVE_ORDER); // r in [1..N]
-      aInRange('s', s, _1n, CURVE_ORDER); // s in [1..N]
+      aInRange('r', r, 1n, CURVE_ORDER); // r in [1..N]
+      aInRange('s', s, 1n, CURVE_ORDER); // s in [1..N]
       this.r = r;
       this.s = s;
       if (recovery != null) this.recovery = recovery;
@@ -1021,7 +1017,7 @@ export function weierstrass(curveDef: CurveType): CurveFn {
      */
     precompute(windowSize = 8, point = Point.BASE): typeof Point.BASE {
       point._setWindowSize(windowSize);
-      point.multiply(BigInt(3)); // 3 is arbitrary, just need any number here
+      point.multiply(3n); // 3 is arbitrary, just need any number here
       return point;
     },
   };
@@ -1092,7 +1088,7 @@ export function weierstrass(curveDef: CurveType): CurveFn {
    * Converts to bytes. Checks if num in `[0..ORDER_MASK-1]` e.g.: `[0..2^256-1]`.
    */
   function int2octets(num: bigint): Uint8Array {
-    aInRange('num < 2^' + CURVE.nBitLength, num, _0n, ORDER_MASK);
+    aInRange('num < 2^' + CURVE.nBitLength, num, 0n, ORDER_MASK);
     // works with order, can have different size than numToField!
     return numberToBytesBE(num, CURVE.nByteLength);
   }
@@ -1134,13 +1130,13 @@ export function weierstrass(curveDef: CurveType): CurveFn {
       const ik = invN(k); // k^-1 mod n
       const q = Point.BASE.multiply(k).toAffine(); // q = Gk
       const r = modN(q.x); // r = q.x mod n
-      if (r === _0n) return;
+      if (r === 0n) return;
       // Can use scalar blinding b^-1(bm + bdr) where b ∈ [1,q−1] according to
       // https://tches.iacr.org/index.php/TCHES/article/view/7337/6509. We've decided against it:
       // a) dependency on CSPRNG b) 15% slowdown c) doesn't really help since bigints are not CT
       const s = modN(ik * modN(m + r * d)); // Not using blinding here
-      if (s === _0n) return;
-      let recovery = (q.x === r ? 0 : 2) | Number(q.y & _1n); // recovery bit (2 or 3, when q.x > n)
+      if (s === 0n) return;
+      let recovery = (q.x === r ? 0 : 2) | Number(q.y & 1n); // recovery bit (2 or 3, when q.x > n)
       let normS = s;
       if (lowS && isBiggerThanHalfOrder(s)) {
         normS = normalizeS(s); // if lowS was passed, ensure s is always
@@ -1275,19 +1271,19 @@ export function SWUFpSqrtRatio<T>(
 ): (u: T, v: T) => { isValid: boolean; value: T } {
   // Generic implementation
   const q = Fp.ORDER;
-  let l = _0n;
-  for (let o = q - _1n; o % _2n === _0n; o /= _2n) l += _1n;
+  let l = 0n;
+  for (let o = q - 1n; o % 2n === 0n; o /= 2n) l += 1n;
   const c1 = l; // 1. c1, the largest integer such that 2^c1 divides q - 1.
   // We need 2n ** c1 and 2n ** (c1-1). We can't use **; but we can use <<.
   // 2n ** c1 == 2n << (c1-1)
-  const _2n_pow_c1_1 = _2n << (c1 - _1n - _1n);
-  const _2n_pow_c1 = _2n_pow_c1_1 * _2n;
-  const c2 = (q - _1n) / _2n_pow_c1; // 2. c2 = (q - 1) / (2^c1)  # Integer arithmetic
-  const c3 = (c2 - _1n) / _2n; // 3. c3 = (c2 - 1) / 2            # Integer arithmetic
-  const c4 = _2n_pow_c1 - _1n; // 4. c4 = 2^c1 - 1                # Integer arithmetic
-  const c5 = _2n_pow_c1_1; // 5. c5 = 2^(c1 - 1)                  # Integer arithmetic
+  const a2n_pow_c1_1 = 2n << (c1 - 1n - 1n);
+  const a2n_pow_c1 = a2n_pow_c1_1 * 2n;
+  const c2 = (q - 1n) / a2n_pow_c1; // 2. c2 = (q - 1) / (2^c1)  # Integer arithmetic
+  const c3 = (c2 - 1n) / 2n; // 3. c3 = (c2 - 1) / 2            # Integer arithmetic
+  const c4 = a2n_pow_c1 - 1n; // 4. c4 = 2^c1 - 1                # Integer arithmetic
+  const c5 = a2n_pow_c1_1; // 5. c5 = 2^(c1 - 1)                  # Integer arithmetic
   const c6 = Fp.pow(Z, c2); // 6. c6 = Z^c2
-  const c7 = Fp.pow(Z, (c2 + _1n) / _2n); // 7. c7 = Z^((c2 + 1) / 2)
+  const c7 = Fp.pow(Z, (c2 + 1n) / 2n); // 7. c7 = Z^((c2 + 1) / 2)
   let sqrtRatio = (u: T, v: T): { isValid: boolean; value: T } => {
     let tv1 = c6; // 1. tv1 = c6
     let tv2 = Fp.pow(v, c4); // 2. tv2 = v^c4
@@ -1306,9 +1302,9 @@ export function SWUFpSqrtRatio<T>(
     tv3 = Fp.cmov(tv2, tv3, isQR); // 15. tv3 = CMOV(tv2, tv3, isQR)
     tv4 = Fp.cmov(tv5, tv4, isQR); // 16. tv4 = CMOV(tv5, tv4, isQR)
     // 17. for i in (c1, c1 - 1, ..., 2):
-    for (let i = c1; i > _1n; i--) {
-      let tv5 = i - _2n; // 18.    tv5 = i - 2
-      tv5 = _2n << (tv5 - _1n); // 19.    tv5 = 2^tv5
+    for (let i = c1; i > 1n; i--) {
+      let tv5 = i - 2n; // 18.    tv5 = i - 2
+      tv5 = 2n << (tv5 - 1n); // 19.    tv5 = 2^tv5
       let tvv5 = Fp.pow(tv4, tv5); // 20.    tv5 = tv4^tv5
       const e1 = Fp.eql(tvv5, Fp.ONE); // 21.    e1 = tv5 == 1
       tv2 = Fp.mul(tv3, tv1); // 22.    tv2 = tv3 * tv1
@@ -1319,9 +1315,9 @@ export function SWUFpSqrtRatio<T>(
     }
     return { isValid: isQR, value: tv3 };
   };
-  if (Fp.ORDER % _4n === _3n) {
+  if (Fp.ORDER % 4n === 3n) {
     // sqrt_ratio_3mod4(u, v)
-    const c1 = (Fp.ORDER - _3n) / _4n; // 1. c1 = (q - 3) / 4     # Integer arithmetic
+    const c1 = (Fp.ORDER - 3n) / 4n; // 1. c1 = (q - 3) / 4     # Integer arithmetic
     const c2 = Fp.sqrt(Fp.neg(Z)); // 2. c2 = sqrt(-Z)
     sqrtRatio = (u: T, v: T) => {
       let tv1 = Fp.sqr(v); // 1. tv1 = v^2
@@ -1337,7 +1333,7 @@ export function SWUFpSqrtRatio<T>(
     };
   }
   // No curves uses that
-  // if (Fp.ORDER % _8n === _5n) // sqrt_ratio_5mod8
+  // if (Fp.ORDER % 8n === 5n) // sqrt_ratio_5mod8
   return sqrtRatio;
 }
 /**

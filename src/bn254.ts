@@ -68,27 +68,24 @@ import type { Fp, Fp12, Fp2, Fp6 } from './abstract/tower.ts';
 import { psiFrobenius, tower12 } from './abstract/tower.ts';
 import { bitGet, bitLen, notImplemented } from './abstract/utils.ts';
 import { type CurveFn, weierstrass } from './abstract/weierstrass.ts';
-// prettier-ignore
-const _1n = BigInt(1), _2n = BigInt(2), _3n = BigInt(3);
-const _6n = BigInt(6);
 
-const BN_X = BigInt('4965661367192848881');
+const BN_X = 4965661367192848881n;
 const BN_X_LEN = bitLen(BN_X);
-const SIX_X_SQUARED = _6n * BN_X ** _2n;
+const SIX_X_SQUARED = 6n * BN_X ** 2n;
 
 // Finite field over r. It's for convenience and is not used in the code below.
 const Fr = Field(
-  BigInt('21888242871839275222246405745257275088548364400416034343698204186575808495617')
+  21888242871839275222246405745257275088548364400416034343698204186575808495617n
 );
-// Fp2.div(Fp2.mul(Fp2.ONE, _3n), Fp2.NONRESIDUE)
+// Fp2.div(Fp2.mul(Fp2.ONE, 3n), Fp2.NONRESIDUE)
 const Fp2B = {
-  c0: BigInt('19485874751759354771024239261021720505790618469301721065564631296452457478373'),
-  c1: BigInt('266929791119991161246907387137283842545076965332900288569378510910307636690'),
+  c0: 19485874751759354771024239261021720505790618469301721065564631296452457478373n,
+  c1: 266929791119991161246907387137283842545076965332900288569378510910307636690n,
 };
 
 const { Fp, Fp2, Fp6, Fp4Square, Fp12 } = tower12({
-  ORDER: BigInt('21888242871839275222246405745257275088696311157297823662689037894645226208583'),
-  FP2_NONRESIDUE: [BigInt(9), _1n],
+  ORDER: 21888242871839275222246405745257275088696311157297823662689037894645226208583n,
+  FP2_NONRESIDUE: [9n, 1n],
   Fp2mulByB: (num) => Fp2.mul(num, Fp2B),
   // The result of any pairing is in a cyclotomic subgroup
   // https://eprint.iacr.org/2009/565.pdf
@@ -101,14 +98,14 @@ const { Fp, Fp2, Fp6, Fp4Square, Fp12 } = tower12({
     let t9 = Fp2.mulByNonresidue(t8); // T8 * (u + 1)
     return {
       c0: Fp6.create({
-        c0: Fp2.add(Fp2.mul(Fp2.sub(t3, c0c0), _2n), t3), // 2 * (T3 - c0c0)  + T3
-        c1: Fp2.add(Fp2.mul(Fp2.sub(t5, c0c1), _2n), t5), // 2 * (T5 - c0c1)  + T5
-        c2: Fp2.add(Fp2.mul(Fp2.sub(t7, c0c2), _2n), t7),
+        c0: Fp2.add(Fp2.mul(Fp2.sub(t3, c0c0), 2n), t3), // 2 * (T3 - c0c0)  + T3
+        c1: Fp2.add(Fp2.mul(Fp2.sub(t5, c0c1), 2n), t5), // 2 * (T5 - c0c1)  + T5
+        c2: Fp2.add(Fp2.mul(Fp2.sub(t7, c0c2), 2n), t7),
       }), // 2 * (T7 - c0c2)  + T7
       c1: Fp6.create({
-        c0: Fp2.add(Fp2.mul(Fp2.add(t9, c1c0), _2n), t9), // 2 * (T9 + c1c0) + T9
-        c1: Fp2.add(Fp2.mul(Fp2.add(t4, c1c1), _2n), t4), // 2 * (T4 + c1c1) + T4
-        c2: Fp2.add(Fp2.mul(Fp2.add(t6, c1c2), _2n), t6),
+        c0: Fp2.add(Fp2.mul(Fp2.add(t9, c1c0), 2n), t9), // 2 * (T9 + c1c0) + T9
+        c1: Fp2.add(Fp2.mul(Fp2.add(t4, c1c1), 2n), t4), // 2 * (T4 + c1c1) + T4
+        c2: Fp2.add(Fp2.mul(Fp2.add(t6, c1c2), 2n), t6),
       }),
     }; // 2 * (T6 + c1c2) + T6
   },
@@ -186,11 +183,11 @@ export const bn254: BLSCurveFn = bls({
   fields: { Fp, Fp2, Fp6, Fp12, Fr },
   G1: {
     Fp,
-    h: BigInt(1),
-    Gx: BigInt(1),
-    Gy: BigInt(2),
+    h: 1n,
+    Gx: 1n,
+    Gy: 2n,
     a: Fp.ZERO,
-    b: _3n,
+    b: 3n,
     htfDefaults: { ...htfDefaults, m: 1, DST: 'BN254G2_XMD:SHA-256_SVDW_RO_' },
     wrapPrivateKey: true,
     allowInfinityPoint: true,
@@ -206,18 +203,18 @@ export const bn254: BLSCurveFn = bls({
   G2: {
     Fp: Fp2,
     // cofactor: (36 * X^4) + (36 * X^3) + (30 * X^2) + 6*X + 1
-    h: BigInt('21888242871839275222246405745257275088844257914179612981679871602714643921549'),
+    h: 21888242871839275222246405745257275088844257914179612981679871602714643921549n,
     Gx: Fp2.fromBigTuple([
-      BigInt('10857046999023057135944570762232829481370756359578518086990519993285655852781'),
-      BigInt('11559732032986387107991004021392285783925812861821192530917403151452391805634'),
+      10857046999023057135944570762232829481370756359578518086990519993285655852781n,
+      11559732032986387107991004021392285783925812861821192530917403151452391805634n,
     ]),
     Gy: Fp2.fromBigTuple([
-      BigInt('8495653923123431417604973247489272438418190587263600148770280649306958101930'),
-      BigInt('4082367875863433681332203403145435568316851327593401208105741076214120093531'),
+      8495653923123431417604973247489272438418190587263600148770280649306958101930n,
+      4082367875863433681332203403145435568316851327593401208105741076214120093531n,
     ]),
     a: Fp2.ZERO,
     b: Fp2B,
-    hEff: BigInt('21888242871839275222246405745257275088844257914179612981679871602714643921549'),
+    hEff: 21888242871839275222246405745257275088844257914179612981679871602714643921549n,
     htfDefaults: { ...htfDefaults },
     wrapPrivateKey: true,
     allowInfinityPoint: true,
@@ -232,7 +229,7 @@ export const bn254: BLSCurveFn = bls({
     },
   },
   params: {
-    ateLoopSize: BN_X * _6n + _2n,
+    ateLoopSize: BN_X * 6n + 2n,
     r: Fr.ORDER,
     xNegative: false,
     twistType: 'divisive',
@@ -251,12 +248,12 @@ export const bn254: BLSCurveFn = bls({
  * @deprecated
  */
 export const bn254_weierstrass: CurveFn = weierstrass({
-  a: BigInt(0),
-  b: BigInt(3),
+  a: 0n,
+  b: 3n,
   Fp,
-  n: BigInt('21888242871839275222246405745257275088548364400416034343698204186575808495617'),
-  Gx: BigInt(1),
-  Gy: BigInt(2),
-  h: BigInt(1),
+  n: 21888242871839275222246405745257275088548364400416034343698204186575808495617n,
+  Gx: 1n,
+  Gy: 2n,
+  h: 1n,
   ...getHash(sha256),
 });
