@@ -4,6 +4,9 @@
  */
 /*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) */
 
+import { abytes, bytesToHex, concatBytes, hexToBytes, isBytes } from '@noble/hashes/utils';
+export { abytes, bytesToHex, bytesToUtf8, concatBytes, hexToBytes, isBytes, utf8ToBytes } from '@noble/hashes/utils';
+
 // 100 lines of code in the file are duplicated from noble-hashes (utils).
 // This is OK: `abstract` directory does not use noble-hashes.
 // User may opt-in into using different hashing library. This way, noble-hashes
@@ -19,15 +22,6 @@ export type CHash = {
   create(opts?: { dkLen?: number }): any; // For shake
 };
 export type FHash = (message: Uint8Array | string) => Uint8Array;
-
-export function isBytes(a: unknown): a is Uint8Array {
-  return a instanceof Uint8Array || (ArrayBuffer.isView(a) && a.constructor.name === 'Uint8Array');
-}
-
-export function abytes(item: unknown): void {
-  if (!isBytes(item)) throw new Error('Uint8Array expected');
-}
-
 export function abool(title: string, value: boolean): void {
   if (typeof value !== 'boolean') throw new Error(title + ' boolean expected, got ' + value);
 }
@@ -41,65 +35,6 @@ export function numberToHexUnpadded(num: number | bigint): string {
 export function hexToNumber(hex: string): bigint {
   if (typeof hex !== 'string') throw new Error('hex string expected, got ' + typeof hex);
   return hex === '' ? _0n : BigInt('0x' + hex); // Big Endian
-}
-
-// Built-in hex conversion https://caniuse.com/mdn-javascript_builtins_uint8array_fromhex
-const hasHexBuiltin: boolean =
-  // @ts-ignore
-  typeof Uint8Array.from([]).toHex === 'function' && typeof Uint8Array.fromHex === 'function';
-
-// Array where index 0xf0 (240) is mapped to string 'f0'
-const hexes = /* @__PURE__ */ Array.from({ length: 256 }, (_, i) =>
-  i.toString(16).padStart(2, '0')
-);
-
-/**
- * Convert byte array to hex string. Uses built-in function, when available.
- * @example bytesToHex(Uint8Array.from([0xca, 0xfe, 0x01, 0x23])) // 'cafe0123'
- */
-export function bytesToHex(bytes: Uint8Array): string {
-  abytes(bytes);
-  // @ts-ignore
-  if (hasHexBuiltin) return bytes.toHex();
-  // pre-caching improves the speed 6x
-  let hex = '';
-  for (let i = 0; i < bytes.length; i++) {
-    hex += hexes[bytes[i]];
-  }
-  return hex;
-}
-
-// We use optimized technique to convert hex string to byte array
-const asciis = { _0: 48, _9: 57, A: 65, F: 70, a: 97, f: 102 } as const;
-function asciiToBase16(ch: number): number | undefined {
-  if (ch >= asciis._0 && ch <= asciis._9) return ch - asciis._0; // '2' => 50-48
-  if (ch >= asciis.A && ch <= asciis.F) return ch - (asciis.A - 10); // 'B' => 66-(65-10)
-  if (ch >= asciis.a && ch <= asciis.f) return ch - (asciis.a - 10); // 'b' => 98-(97-10)
-  return;
-}
-
-/**
- * Convert hex string to byte array. Uses built-in function, when available.
- * @example hexToBytes('cafe0123') // Uint8Array.from([0xca, 0xfe, 0x01, 0x23])
- */
-export function hexToBytes(hex: string): Uint8Array {
-  if (typeof hex !== 'string') throw new Error('hex string expected, got ' + typeof hex);
-  // @ts-ignore
-  if (hasHexBuiltin) return Uint8Array.fromHex(hex);
-  const hl = hex.length;
-  const al = hl / 2;
-  if (hl % 2) throw new Error('hex string expected, got unpadded hex of length ' + hl);
-  const array = new Uint8Array(al);
-  for (let ai = 0, hi = 0; ai < al; ai++, hi += 2) {
-    const n1 = asciiToBase16(hex.charCodeAt(hi));
-    const n2 = asciiToBase16(hex.charCodeAt(hi + 1));
-    if (n1 === undefined || n2 === undefined) {
-      const char = hex[hi] + hex[hi + 1];
-      throw new Error('hex string expected, got non-hex character "' + char + '" at index ' + hi);
-    }
-    array[ai] = n1 * 16 + n2; // multiply first octet, e.g. 'a3' => 10*16+3 => 160 + 3 => 163
-  }
-  return array;
 }
 
 // BE: Big Endian, LE: Little Endian
@@ -152,43 +87,12 @@ export function ensureBytes(title: string, hex: Hex, expectedLength?: number): U
   return res;
 }
 
-/**
- * Copies several Uint8Arrays into one.
- */
-export function concatBytes(...arrays: Uint8Array[]): Uint8Array {
-  let sum = 0;
-  for (let i = 0; i < arrays.length; i++) {
-    const a = arrays[i];
-    abytes(a);
-    sum += a.length;
-  }
-  const res = new Uint8Array(sum);
-  for (let i = 0, pad = 0; i < arrays.length; i++) {
-    const a = arrays[i];
-    res.set(a, pad);
-    pad += a.length;
-  }
-  return res;
-}
-
 // Compares 2 u8a-s in kinda constant time
 export function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
   return diff === 0;
-}
-
-// Global symbols in both browsers and Node.js since v11
-// See https://github.com/microsoft/TypeScript/issues/31535
-declare const TextEncoder: any;
-
-/**
- * @example utf8ToBytes('abc') // new Uint8Array([97, 98, 99])
- */
-export function utf8ToBytes(str: string): Uint8Array {
-  if (typeof str !== 'string') throw new Error('string expected');
-  return new Uint8Array(new TextEncoder().encode(str)); // https://bugzil.la/1681809
 }
 
 // Is positive bigint
