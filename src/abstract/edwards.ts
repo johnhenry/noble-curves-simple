@@ -13,7 +13,7 @@ import { Field, FpInvertBatch, mod } from './modular.ts';
 // prettier-ignore
 import {
   abool, aInRange, bytesToHex, bytesToNumberLE, concatBytes,
-  ensureBytes, memoized, numberToBytesLE, validateObject,
+  ensureBytes, hexToBytes, memoized, numberToBytesLE, validateObject,
   type FHash, type Hex
 } from './utils.ts';
 
@@ -83,8 +83,9 @@ export interface ExtPointType extends Group<ExtPointType> {
 export interface ExtPointConstructor extends GroupConstructor<ExtPointType> {
   new (x: bigint, y: bigint, z: bigint, t: bigint): ExtPointType;
   fromAffine(p: AffinePoint<bigint>): ExtPointType;
+  fromRawBytes(bytes: Uint8Array): ExtPointType;
   fromHex(hex: Hex): ExtPointType;
-  fromPrivateKey(privateKey: Hex): ExtPointType;
+  fromPrivateKey(privateKey: Uint8Array): ExtPointType;
   msm(points: ExtPointType[], scalars: bigint[]): ExtPointType;
 }
 
@@ -94,18 +95,22 @@ export interface ExtPointConstructor extends GroupConstructor<ExtPointType> {
  */
 export type CurveFn = {
   CURVE: ReturnType<typeof validateOpts>;
-  getPublicKey: (privateKey: Hex) => Uint8Array;
-  sign: (message: Hex, privateKey: Hex, options?: { context?: Hex }) => Uint8Array;
+  getPublicKey: (privateKey: Uint8Array) => Uint8Array;
+  sign: (
+    message: Uint8Array,
+    privateKey: Uint8Array,
+    options?: { context?: Uint8Array }
+  ) => Uint8Array;
   verify: (
-    sig: Hex,
-    message: Hex,
-    publicKey: Hex,
-    options?: { context?: Hex; zip215: boolean }
+    sig: Uint8Array,
+    message: Uint8Array,
+    publicKey: Uint8Array,
+    options?: { context?: Uint8Array; zip215: boolean }
   ) => boolean;
   ExtendedPoint: ExtPointConstructor;
   utils: {
     randomPrivateKey: () => Uint8Array;
-    getExtendedPublicKey: (key: Hex) => {
+    getExtendedPublicKey: (key: Uint8Array) => {
       head: Uint8Array;
       prefix: Uint8Array;
       scalar: bigint;
@@ -383,15 +388,13 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
       return this.multiplyUnsafe(cofactor);
     }
 
-    // Converts hash string or Uint8Array to Point.
-    // Uses algo from RFC8032 5.1.3.
-    static fromHex(hex: Hex, zip215 = false): Point {
-      const { d, a } = CURVE;
+    static fromRawBytes(bytes: Uint8Array, zip215 = false): Point {
       const len = Fp.BYTES;
-      hex = ensureBytes('pointHex', hex, len); // copy hex to a new array
       abool('zip215', zip215);
-      const normed = hex.slice(); // copy again, we'll manipulate it
-      const lastByte = hex[len - 1]; // select last byte
+      ensureBytes('point', bytes, len);
+      // TODO: replace with copyBytes
+      const normed = bytes.slice(); // copy again, we'll manipulate it
+      const lastByte = bytes[len - 1]; // select last byte
       normed[len - 1] = lastByte & ~0x80; // clear last bit
       const y = bytesToNumberLE(normed);
 
@@ -404,6 +407,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
 
       // Ed25519: x² = (y²-1)/(dy²+1) mod p. Ed448: x² = (y²-1)/(dy²-1) mod p. Generic case:
       // ax²+y²=1+dx²y² => y²-1=dx²y²-ax² => y²-1=x²(dy²-a) => x²=(y²-1)/(dy²-a)
+      const { d, a } = CURVE;
       const y2 = modP(y * y); // denominator is always non-0 mod p.
       const u = modP(y2 - _1n); // u = y² - 1
       const v = modP(d * y2 - a); // v = d y² + 1.
@@ -417,7 +421,12 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
       if (isLastByteOdd !== isXOdd) x = modP(-x); // if x_0 != x mod 2, set x = p-x
       return Point.fromAffine({ x, y });
     }
-    static fromPrivateKey(privKey: Hex): Point {
+    // Converts hash string or Uint8Array to Point.
+    // Uses algo from RFC8032 5.1.3.
+    static fromHex(hex: Hex, zip215 = false): Point {
+      return Point.fromRawBytes(hexToBytes(hex), zip215);
+    }
+    static fromPrivateKey(privKey: Uint8Array): Point {
       const { scalar } = getPrivateScalar(privKey);
       return G.multiply(scalar); // reduced one call of `toRawBytes`
     }
@@ -443,7 +452,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
   }
 
   // Get the hashed private scalar per RFC8032 5.1.5
-  function getPrivateScalar(key: Hex) {
+  function getPrivateScalar(key: Uint8Array) {
     const len = Fp.BYTES;
     key = ensureBytes('private key', key, len);
     // Hash private key with curve's hash function to produce uniformingly random input
@@ -456,7 +465,7 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
   }
 
   // Convenience method that creates public key from scalar. RFC8032 5.1.5
-  function getExtendedPublicKey(key: Hex) {
+  function getExtendedPublicKey(key: Uint8Array) {
     const { head, prefix, scalar } = getPrivateScalar(key);
     const point = G.multiply(scalar); // Point on Edwards curve aka public key
     const pointBytes = point.toRawBytes(); // Uint8Array representation
@@ -464,18 +473,22 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
   }
 
   // Calculates EdDSA pub key. RFC8032 5.1.5. Privkey is hashed. Use first half with 3 bits cleared
-  function getPublicKey(privKey: Hex): Uint8Array {
+  function getPublicKey(privKey: Uint8Array): Uint8Array {
     return getExtendedPublicKey(privKey).pointBytes;
   }
 
   // int('LE', SHA512(dom2(F, C) || msgs)) mod N
-  function hashDomainToScalar(context: Hex = Uint8Array.of(), ...msgs: Uint8Array[]) {
+  function hashDomainToScalar(context: Uint8Array = Uint8Array.of(), ...msgs: Uint8Array[]) {
     const msg = concatBytes(...msgs);
     return modN_LE(cHash(domain(msg, ensureBytes('context', context), !!prehash)));
   }
 
   /** Signs message with privateKey. RFC8032 5.1.6 */
-  function sign(msg: Hex, privKey: Hex, options: { context?: Hex } = {}): Uint8Array {
+  function sign(
+    msg: Uint8Array,
+    privKey: Uint8Array,
+    options: { context?: Uint8Array } = {}
+  ): Uint8Array {
     msg = ensureBytes('message', msg);
     if (prehash) msg = prehash(msg); // for ed25519ph etc.
     const { prefix, scalar, pointBytes } = getExtendedPublicKey(privKey);
@@ -488,13 +501,18 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
     return ensureBytes('result', res, Fp.BYTES * 2); // 64-byte signature
   }
 
-  const verifyOpts: { context?: Hex; zip215?: boolean } = VERIFY_DEFAULT;
+  const verifyOpts: { context?: Uint8Array; zip215?: boolean } = VERIFY_DEFAULT;
 
   /**
    * Verifies EdDSA signature against message and public key. RFC8032 5.1.7.
    * An extended group equation is checked.
    */
-  function verify(sig: Hex, msg: Hex, publicKey: Hex, options = verifyOpts): boolean {
+  function verify(
+    sig: Uint8Array,
+    msg: Uint8Array,
+    publicKey: Uint8Array,
+    options = verifyOpts
+  ): boolean {
     const { context, zip215 } = options;
     const len = Fp.BYTES; // Verifies EdDSA signature against message and public key. RFC8032 5.1.7.
     sig = ensureBytes('signature', sig, 2 * len); // An extended group equation is checked.
@@ -509,8 +527,8 @@ export function twistedEdwards(curveDef: CurveType): CurveFn {
       // zip215=true is good for consensus-critical apps. =false follows RFC8032 / NIST186-5.
       // zip215=true:  0 <= y < MASK (2^256 for ed25519)
       // zip215=false: 0 <= y < P (2^255-19 for ed25519)
-      A = Point.fromHex(publicKey, zip215);
-      R = Point.fromHex(sig.slice(0, len), zip215);
+      A = Point.fromRawBytes(publicKey, zip215);
+      R = Point.fromRawBytes(sig.slice(0, len), zip215);
       SB = G.multiplyUnsafe(s); // 0 <= s < l is done inside
     } catch (error) {
       return false;

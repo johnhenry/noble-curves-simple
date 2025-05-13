@@ -60,7 +60,7 @@
  */
 /*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) */
 import { sha256 } from '@noble/hashes/sha2.js';
-import { randomBytes } from '@noble/hashes/utils.js';
+import { hexToBytes, randomBytes } from '@noble/hashes/utils.js';
 import { bls, type CurveFn } from './abstract/bls.ts';
 import { Field } from './abstract/modular.ts';
 import {
@@ -558,8 +558,8 @@ export const bls12_381: CurveFn = bls({
       }
     },
     ShortSignature: {
-      fromHex(hex: Hex): ProjPointType<Fp> {
-        const { infinity, sort, value } = parseMask(ensureBytes('signatureHex', hex, 48));
+      fromRawBytes(bytes: Uint8Array) {
+        const { infinity, sort, value } = parseMask(ensureBytes('signature', bytes, 48));
         const P = Fp.ORDER;
         const compressedValue = bytesToNumberBE(value);
         // Zero
@@ -573,6 +573,9 @@ export const bls12_381: CurveFn = bls({
         const point = bls12_381.G1.ProjectivePoint.fromAffine({ x, y });
         point.assertValidity();
         return point;
+      },
+      fromHex(hex: Hex): ProjPointType<Fp> {
+        return this.fromRawBytes(hexToBytes(hex));
       },
       toRawBytes(point: ProjPointType<Fp>) {
         return signatureG1ToRawBytes(point);
@@ -721,8 +724,8 @@ export const bls12_381: CurveFn = bls({
     },
     Signature: {
       // TODO: Optimize, it's very slow because of sqrt.
-      fromHex(hex: Hex): ProjPointType<Fp2> {
-        const { infinity, sort, value } = parseMask(ensureBytes('signatureHex', hex));
+      fromRawBytes(bytes: Uint8Array): ProjPointType<Fp2> {
+        const { infinity, sort, value } = parseMask(ensureBytes('signature', bytes));
         const P = Fp.ORDER;
         const half = value.length / 2;
         if (half !== 48 && half !== 96)
@@ -749,6 +752,9 @@ export const bls12_381: CurveFn = bls({
         const point = bls12_381.G2.ProjectivePoint.fromAffine({ x, y });
         point.assertValidity();
         return point;
+      },
+      fromHex(hex: Hex): ProjPointType<Fp2> {
+        return this.fromRawBytes(hexToBytes(hex));
       },
       toRawBytes(point: ProjPointType<Fp2>) {
         return signatureG2ToRawBytes(point);

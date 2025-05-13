@@ -53,6 +53,7 @@ import {
 import {
   type CHash, type Hex, type PrivKey,
   aInRange, abool,
+  abytes,
   bitMask,
   bytesToHex, bytesToNumberBE, concatBytes, createHmacDrbg, ensureBytes, hexToBytes,
   inRange, isBytes, memoized, numberToBytesBE, numberToHexUnpadded, validateObject
@@ -80,7 +81,7 @@ export type BasicWCurve<T> = BasicCurve<T> & {
   clearCofactor?: (c: ProjConstructor<T>, point: ProjPointType<T>) => ProjPointType<T>;
 };
 
-export type Entropy = Hex | boolean;
+export type Entropy = Uint8Array | boolean;
 export type SignOpts = { lowS?: boolean; extraEntropy?: Entropy; prehash?: boolean };
 export type VerOpts = { lowS?: boolean; prehash?: boolean; format?: 'compact' | 'der' | undefined };
 
@@ -113,6 +114,7 @@ export interface ProjConstructor<T> extends GroupConstructor<ProjPointType<T>> {
   new (x: T, y: T, z: T): ProjPointType<T>;
   fromAffine(p: AffinePoint<T>): ProjPointType<T>;
   fromHex(hex: Hex): ProjPointType<T>;
+  fromRawBytes(hex: Uint8Array): ProjPointType<T>;
   fromPrivateKey(privateKey: PrivKey): ProjPointType<T>;
   normalizeZ(points: ProjPointType<T>[]): ProjPointType<T>[];
   msm(points: ProjPointType<T>[], scalars: bigint[]): ProjPointType<T>;
@@ -268,7 +270,7 @@ export const DER: IDER = {
       return bytesToNumberBE(data);
     },
   },
-  toSig(hex: string | Uint8Array): { r: bigint; s: bigint } {
+  toSig(hex: Uint8Array): { r: bigint; s: bigint } {
     // parse DER signature
     const { Err: E, _int: int, _tlv: tlv } = DER;
     const data = ensureBytes('signature', hex);
@@ -339,24 +341,18 @@ export function weierstrassPoints<T>(opts: CurvePointsType<T>): CurvePointsRes<T
   // Supports options allowedPrivateKeyLengths and wrapPrivateKey.
   function normPrivateKeyToScalar(key: PrivKey): bigint {
     const { allowedPrivateKeyLengths: lengths, nByteLength, wrapPrivateKey, n: N } = CURVE;
-    if (lengths && typeof key !== 'bigint') {
-      if (isBytes(key)) key = bytesToHex(key);
+    abytes(key);
+    if (lengths) {
+      // 130 - 129
+      if (!lengths.includes(key.length)) throw new Error('invalid private key');
+      const offset = nByteLength - key.length;
       // Normalize to hex string, pad. E.g. P521 would norm 130-132 char hex to 132-char bytes
-      if (typeof key !== 'string' || !lengths.includes(key.length))
-        throw new Error('invalid private key');
-      key = key.padStart(nByteLength * 2, '0');
+      const padded = new Uint8Array(nByteLength);
+      padded.set(key, offset);
+      key = padded;
     }
-    let num: bigint;
-    try {
-      num =
-        typeof key === 'bigint'
-          ? key
-          : bytesToNumberBE(ensureBytes('private key', key, nByteLength));
-    } catch (error) {
-      throw new Error(
-        'invalid private key, expected hex or ' + nByteLength + ' bytes, got ' + typeof key
-      );
-    }
+    ensureBytes('private key', key, nByteLength);
+    let num: bigint = bytesToNumberBE(key);
     if (wrapPrivateKey) num = mod(num, N); // disabled by default, enabled for BLS
     aInRange('private key', num, _1n, N); // num in range [1..N-1]
     return num;
@@ -467,7 +463,13 @@ export function weierstrassPoints<T>(opts: CurvePointsType<T>): CurvePointsRes<T
      * @param hex short/long ECDSA hex
      */
     static fromHex(hex: Hex): Point {
-      const P = Point.fromAffine(fromBytes(ensureBytes('pointHex', hex)));
+      if (isBytes(hex))
+        throw new Error('Use .fromRawBytes() for Uint8Array, instead of .fromHex()');
+      return this.fromRawBytes(hexToBytes(hex));
+    }
+
+    static fromRawBytes(bytes: Uint8Array) {
+      const P = Point.fromAffine(fromBytes(ensureBytes('point', bytes)));
       P.assertValidity();
       return P;
     }
@@ -757,7 +759,7 @@ export interface SignatureType {
   addRecoveryBit(recovery: number): RecoveredSignatureType;
   hasHighS(): boolean;
   normalizeS(): SignatureType;
-  recoverPublicKey(msgHash: Hex): ProjPointType<bigint>;
+  recoverPublicKey(msgHash: Uint8Array): ProjPointType<bigint>;
   toCompactRawBytes(): Uint8Array;
   toCompactHex(): string;
   toDERRawBytes(isCompressed?: boolean): Uint8Array;
@@ -769,8 +771,8 @@ export type RecoveredSignatureType = SignatureType & {
 // Static methods
 export type SignatureConstructor = {
   new (r: bigint, s: bigint): SignatureType;
-  fromCompact(hex: Hex): SignatureType;
-  fromDER(hex: Hex): SignatureType;
+  fromCompact(hex: Uint8Array): SignatureType;
+  fromDER(hex: Uint8Array): SignatureType;
 };
 type SignatureLike = { r: bigint; s: bigint };
 
@@ -808,9 +810,14 @@ function validateOpts(
 export type CurveFn = {
   CURVE: ReturnType<typeof validateOpts>;
   getPublicKey: (privateKey: PrivKey, isCompressed?: boolean) => Uint8Array;
-  getSharedSecret: (privateA: PrivKey, publicB: Hex, isCompressed?: boolean) => Uint8Array;
-  sign: (msgHash: Hex, privKey: PrivKey, opts?: SignOpts) => RecoveredSignatureType;
-  verify: (signature: Hex | SignatureLike, msgHash: Hex, publicKey: Hex, opts?: VerOpts) => boolean;
+  getSharedSecret: (privateA: PrivKey, publicB: Uint8Array, isCompressed?: boolean) => Uint8Array;
+  sign: (msgHash: Uint8Array, privKey: PrivKey, opts?: SignOpts) => RecoveredSignatureType;
+  verify: (
+    signature: Uint8Array | SignatureLike,
+    msgHash: Uint8Array,
+    publicKey: Uint8Array,
+    opts?: VerOpts
+  ) => boolean;
   ProjectivePoint: ProjConstructor<bigint>;
   Signature: SignatureConstructor;
   utils: {
@@ -924,15 +931,15 @@ export function weierstrass(curveDef: CurveType): CurveFn {
     }
 
     // pair (bytes of r, bytes of s)
-    static fromCompact(hex: Hex) {
+    static fromCompact(hex: Uint8Array) {
       const l = CURVE.nByteLength;
-      hex = ensureBytes('compactSignature', hex, l * 2);
+      hex = ensureBytes('signature', hex, l * 2);
       return new Signature(slcNum(hex, 0, l), slcNum(hex, l, 2 * l));
     }
 
     // DER encoded ECDSA signature
     // https://bitcoin.stackexchange.com/questions/57644/what-are-the-parts-of-a-bitcoin-transaction-input-script
-    static fromDER(hex: Hex) {
+    static fromDER(hex: Uint8Array) {
       const { r, s } = DER.toSig(ensureBytes('DER', hex));
       return new Signature(r, s);
     }
@@ -947,7 +954,7 @@ export function weierstrass(curveDef: CurveType): CurveFn {
       return new Signature(this.r, this.s, recovery) as RecoveredSignature;
     }
 
-    recoverPublicKey(msgHash: Hex): typeof Point.BASE {
+    recoverPublicKey(msgHash: Uint8Array): typeof Point.BASE {
       const { r, s, recovery: rec } = this;
       const h = bits2int_modN(ensureBytes('msgHash', msgHash)); // Truncate hash
       if (rec == null || ![0, 1, 2, 3].includes(rec)) throw new Error('recovery id invalid');
@@ -1059,10 +1066,14 @@ export function weierstrass(curveDef: CurveType): CurveFn {
    * @param isCompressed whether to return compact (default), or full key
    * @returns shared public key
    */
-  function getSharedSecret(privateA: PrivKey, publicB: Hex, isCompressed = true): Uint8Array {
+  function getSharedSecret(
+    privateA: PrivKey,
+    publicB: Uint8Array,
+    isCompressed = true
+  ): Uint8Array {
     if (isProbPub(privateA)) throw new Error('first arg must be private key');
     if (!isProbPub(publicB)) throw new Error('second arg must be public key');
-    const b = Point.fromHex(publicB); // check for being on-curve
+    const b = Point.fromRawBytes(publicB); // check for being on-curve
     return b.multiply(normPrivateKeyToScalar(privateA)).toRawBytes(isCompressed);
   }
 
@@ -1102,7 +1113,7 @@ export function weierstrass(curveDef: CurveType): CurveFn {
   // Used only in sign, not in verify.
   // NOTE: we cannot assume here that msgHash has same amount of bytes as curve order,
   // this will be invalid at least for P521. Also it can be bigger for P224 + SHA256
-  function prepSig(msgHash: Hex, privateKey: PrivKey, opts = defaultSigOpts) {
+  function prepSig(msgHash: Uint8Array, privateKey: PrivKey, opts = defaultSigOpts) {
     if (['recovered', 'canonical'].some((k) => k in opts))
       throw new Error('sign() legacy options not supported');
     const { hash, randomBytes } = CURVE;
@@ -1166,7 +1177,7 @@ export function weierstrass(curveDef: CurveType): CurveFn {
    * @param opts lowS for non-malleable sigs. extraEntropy for mixing randomness into k. prehash will hash first arg.
    * @returns signature with recovery param
    */
-  function sign(msgHash: Hex, privKey: PrivKey, opts = defaultSigOpts): RecoveredSignature {
+  function sign(msgHash: Uint8Array, privKey: PrivKey, opts = defaultSigOpts): RecoveredSignature {
     const { seed, k2sig } = prepSig(msgHash, privKey, opts); // Steps A, D of RFC6979 3.2.
     const C = CURVE;
     const drbg = createHmacDrbg<RecoveredSignature>(C.hash.outputLen, C.nByteLength, C.hmac);
@@ -1191,9 +1202,9 @@ export function weierstrass(curveDef: CurveType): CurveFn {
    * ```
    */
   function verify(
-    signature: Hex | SignatureLike,
-    msgHash: Hex,
-    publicKey: Hex,
+    signature: Uint8Array | SignatureLike,
+    msgHash: Uint8Array,
+    publicKey: Uint8Array,
     opts = defaultVerOpts
   ): boolean {
     const sg = signature;
@@ -1231,7 +1242,7 @@ export function weierstrass(curveDef: CurveType): CurveFn {
         }
         if (!_sig && format !== 'der') _sig = Signature.fromCompact(sg);
       }
-      P = Point.fromHex(publicKey);
+      P = Point.fromRawBytes(publicKey);
     } catch (error) {
       return false;
     }

@@ -26,7 +26,6 @@ import {
   bytesToNumberLE,
   ensureBytes,
   equalBytes,
-  type Hex,
   numberToBytesLE,
 } from './abstract/utils.ts';
 
@@ -183,8 +182,8 @@ export const x448: XCurveFn = /* @__PURE__ */ (() =>
  *   const aPub = ed448.getPublicKey(utils.randomPrivateKey());
  *   x448.getSharedSecret(edwardsToMontgomery(aPub), edwardsToMontgomery(someonesPub))
  */
-export function edwardsToMontgomeryPub(edwardsPub: string | Uint8Array): Uint8Array {
-  const { y } = ed448.ExtendedPoint.fromHex(edwardsPub);
+export function edwardsToMontgomeryPub(edwardsPub: Uint8Array): Uint8Array {
+  const { y } = ed448.ExtendedPoint.fromRawBytes(edwardsPub);
   const _1n = BigInt(1);
   return Fp.toBytes(Fp.create((y - _1n) * Fp.inv(y + _1n)));
 }
@@ -377,7 +376,7 @@ class DcfPoint implements Group<DcfPoint> {
    * and [RFC9496](https://www.rfc-editor.org/rfc/rfc9496#name-element-derivation-2).
    * @param hex 112-byte output of a hash function
    */
-  static hashToCurve(hex: Hex): DcfPoint {
+  static hashToCurve(hex: Uint8Array): DcfPoint {
     hex = ensureBytes('decafHash', hex, 112);
     const r1 = bytes448ToNumberLE(hex.slice(0, 56));
     const R1 = calcElligatorDecafMap(r1);
@@ -391,7 +390,7 @@ class DcfPoint implements Group<DcfPoint> {
    * Described in [RFC9496](https://www.rfc-editor.org/rfc/rfc9496#name-decode-2).
    * @param hex Decaf-encoded 56 bytes. Not every 56-byte string is valid decaf encoding
    */
-  static fromHex(hex: Hex): DcfPoint {
+  static fromHex(hex: Uint8Array): DcfPoint {
     hex = ensureBytes('decafHex', hex, 56);
     const { d } = ed448.CURVE;
     const P = ed448.CURVE.Fp.ORDER;

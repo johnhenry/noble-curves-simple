@@ -398,7 +398,7 @@ class RistPoint implements Group<RistPoint> {
    * the [website](https://ristretto.group/formulas/elligator.html).
    * @param hex 64-byte output of a hash function
    */
-  static hashToCurve(hex: Hex): RistPoint {
+  static hashToCurve(hex: Uint8Array): RistPoint {
     hex = ensureBytes('ristrettoHash', hex, 64);
     const r1 = bytes255ToNumberLE(hex.slice(0, 32));
     const R1 = calcElligatorRistrettoMap(r1);
@@ -412,7 +412,7 @@ class RistPoint implements Group<RistPoint> {
    * Described in [RFC9496](https://www.rfc-editor.org/rfc/rfc9496#name-decode).
    * @param hex Ristretto-encoded 32 bytes. Not every 32-byte string is valid ristretto encoding
    */
-  static fromHex(hex: Hex): RistPoint {
+  static fromHex(hex: Uint8Array): RistPoint {
     hex = ensureBytes('ristrettoHex', hex, 32);
     const { a, d } = ed25519.CURVE;
     const P = ed25519.CURVE.Fp.ORDER;

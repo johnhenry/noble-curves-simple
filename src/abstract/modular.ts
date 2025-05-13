@@ -466,11 +466,7 @@ export function FpSqrtEven<T>(Fp: IField<T>, elm: T): T {
  * Which makes it slightly more biased, less secure.
  * @deprecated use `mapKeyToField` instead
  */
-export function hashToPrivateScalar(
-  hash: string | Uint8Array,
-  groupOrder: bigint,
-  isLE = false
-): bigint {
+export function hashToPrivateScalar(hash: Uint8Array, groupOrder: bigint, isLE = false): bigint {
   hash = ensureBytes('privateHash', hash);
   const hashLen = hash.length;
   const minLen = nLength(groupOrder).nByteLength + 8;

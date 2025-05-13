@@ -10,8 +10,8 @@
 // won't be included into their bundle.
 const _0n = /* @__PURE__ */ BigInt(0);
 const _1n = /* @__PURE__ */ BigInt(1);
-export type Hex = Uint8Array | string; // hex strings are accepted for simplicity
-export type PrivKey = Hex | bigint; // bigints are accepted to ease learning curve
+export type Hex = string; // hex strings are accepted for simplicity
+export type PrivKey = Uint8Array; // bigints are accepted to ease learning curve
 export type CHash = {
   (message: Uint8Array): Uint8Array;
   blockLen: number;
@@ -131,15 +131,9 @@ export function numberToVarBytesBE(n: number | bigint): Uint8Array {
  * @param expectedLength optional, will compare to result array's length
  * @returns
  */
-export function ensureBytes(title: string, hex: Hex, expectedLength?: number): Uint8Array {
+export function ensureBytes(title: string, hex: Uint8Array, expectedLength?: number): Uint8Array {
   let res: Uint8Array;
-  if (typeof hex === 'string') {
-    try {
-      res = hexToBytes(hex);
-    } catch (e) {
-      throw new Error(title + ' must be hex string or Uint8Array, cause: ' + e);
-    }
-  } else if (isBytes(hex)) {
+  if (isBytes(hex)) {
     // Uint8Array.from() instead of hash.slice() because node.js Buffer
     // is instance of Uint8Array, and its slice() creates **mutable** copy
     res = Uint8Array.from(hex);

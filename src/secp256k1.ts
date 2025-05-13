@@ -16,7 +16,7 @@ import { randomBytes } from '@noble/hashes/utils.js';
 import { createCurve, type CurveFnWithCreate } from './_shortw_utils.ts';
 import { createHasher, type Hasher, type HTFMethod, isogenyMap } from './abstract/hash-to-curve.ts';
 import { Field, mod, pow2 } from './abstract/modular.ts';
-import type { Hex, PrivKey } from './abstract/utils.ts';
+import type { PrivKey } from './abstract/utils.ts';
 import {
   aInRange,
   bytesToNumberBE,
@@ -142,11 +142,9 @@ const GmulAdd = (Q: PointType<bigint>, a: bigint, b: bigint) =>
   Point.BASE.multiplyAndAddUnsafe(Q, a, b);
 
 // Calculate point, scalar and bytes
-function schnorrGetExtPubKey(priv: PrivKey) {
-  let d_ = secp256k1.utils.normPrivateKeyToScalar(priv); // same method executed in fromPrivateKey
-  let p = Point.fromPrivateKey(d_); // P = d'⋅G; 0 < d' < n check is done inside
-  const scalar = p.hasEvenY() ? d_ : modN(-d_);
-  return { scalar: scalar, bytes: pointToBytes(p) };
+function schnorrGetExtPubKey(d_: bigint) {
+  const p = Point.BASE.multiply(d_); // P = d'⋅G; 0 < d' < n check is done inside
+  return { scalar: p.hasEvenY() ? d_ : modN(-d_), bytes: pointToBytes(p) };
 }
 /**
  * lift_x from BIP340. Convert 32-byte x coordinate to elliptic curve point.
@@ -173,8 +171,9 @@ function challenge(...args: Uint8Array[]): bigint {
 /**
  * Schnorr public key is just `x` coordinate of Point as per BIP340.
  */
-function schnorrGetPublicKey(privateKey: Hex): Uint8Array {
-  return schnorrGetExtPubKey(privateKey).bytes; // d'=int(sk). Fail if d'=0 or d'≥n. Ret bytes(d'⋅G)
+function schnorrGetPublicKey(privateKey: Uint8Array): Uint8Array {
+  // d'=int(sk). Fail if d'=0 or d'≥n. Ret bytes(d'⋅G)
+  return pointToBytes(Point.fromPrivateKey(privateKey));
 }
 
 /**
@@ -182,12 +181,13 @@ function schnorrGetPublicKey(privateKey: Hex): Uint8Array {
  * auxRand is optional and is not the sole source of k generation: bad CSPRNG won't be dangerous.
  */
 function schnorrSign(
-  message: Hex,
+  message: Uint8Array,
   privateKey: PrivKey,
-  auxRand: Hex = randomBytes(32)
+  auxRand: Uint8Array = randomBytes(32)
 ): Uint8Array {
   const m = ensureBytes('message', message);
-  const { bytes: px, scalar: d } = schnorrGetExtPubKey(privateKey); // checks for isWithinCurveOrder
+  const d_ = secp256k1.utils.normPrivateKeyToScalar(privateKey);
+  const { bytes: px, scalar: d } = schnorrGetExtPubKey(d_); // checks for isWithinCurveOrder
   const a = ensureBytes('auxRand', auxRand, 32); // Auxiliary random data a: a 32-byte array
   const t = numTo32b(d ^ num(taggedHash('BIP0340/aux', a))); // Let t be the byte-wise xor of bytes(d) and hash/aux(a)
   const rand = taggedHash('BIP0340/nonce', t, px, m); // Let rand = hash/nonce(t || bytes(P) || m)
@@ -207,7 +207,7 @@ function schnorrSign(
  * Verifies Schnorr signature.
  * Will swallow errors & return false except for initial type validation of arguments.
  */
-function schnorrVerify(signature: Hex, message: Hex, publicKey: Hex): boolean {
+function schnorrVerify(signature: Uint8Array, message: Uint8Array, publicKey: Uint8Array): boolean {
   const sig = ensureBytes('signature', signature, 64);
   const m = ensureBytes('message', message);
   const pub = ensureBytes('publicKey', publicKey, 32);

@@ -42,12 +42,14 @@ const _0n = BigInt(0), _1n = BigInt(1), _2n = BigInt(2), _3n = BigInt(3);
 export type TwistType = 'multiplicative' | 'divisive';
 
 export type ShortSignatureCoder<Fp> = {
+  fromRawBytes(bytes: Uint8Array): ProjPointType<Fp>;
   fromHex(hex: Hex): ProjPointType<Fp>;
   toRawBytes(point: ProjPointType<Fp>): Uint8Array;
   toHex(point: ProjPointType<Fp>): string;
 };
 
 export type SignatureCoder<Fp> = {
+  fromRawBytes(bytes: Uint8Array): ProjPointType<Fp>;
   fromHex(hex: Hex): ProjPointType<Fp>;
   toRawBytes(point: ProjPointType<Fp>): Uint8Array;
   toHex(point: ProjPointType<Fp>): string;
@@ -109,41 +111,41 @@ export type CurveFn = {
   getPublicKey: (privateKey: PrivKey) => Uint8Array;
   getPublicKeyForShortSignatures: (privateKey: PrivKey) => Uint8Array;
   sign: {
-    (message: Hex, privateKey: PrivKey, htfOpts?: htfBasicOpts): Uint8Array;
+    (message: Uint8Array, privateKey: PrivKey, htfOpts?: htfBasicOpts): Uint8Array;
     (message: ProjPointType<Fp2>, privateKey: PrivKey, htfOpts?: htfBasicOpts): ProjPointType<Fp2>;
   };
   signShortSignature: {
-    (message: Hex, privateKey: PrivKey, htfOpts?: htfBasicOpts): Uint8Array;
+    (message: Uint8Array, privateKey: PrivKey, htfOpts?: htfBasicOpts): Uint8Array;
     (message: ProjPointType<Fp>, privateKey: PrivKey, htfOpts?: htfBasicOpts): ProjPointType<Fp>;
   };
   verify: (
-    signature: Hex | ProjPointType<Fp2>,
-    message: Hex | ProjPointType<Fp2>,
-    publicKey: Hex | ProjPointType<Fp>,
+    signature: Uint8Array | ProjPointType<Fp2>,
+    message: Uint8Array | ProjPointType<Fp2>,
+    publicKey: Uint8Array | ProjPointType<Fp>,
     htfOpts?: htfBasicOpts
   ) => boolean;
   verifyShortSignature: (
-    signature: Hex | ProjPointType<Fp>,
-    message: Hex | ProjPointType<Fp>,
-    publicKey: Hex | ProjPointType<Fp2>,
+    signature: Uint8Array | ProjPointType<Fp>,
+    message: Uint8Array | ProjPointType<Fp>,
+    publicKey: Uint8Array | ProjPointType<Fp2>,
     htfOpts?: htfBasicOpts
   ) => boolean;
   verifyBatch: (
-    signature: Hex | ProjPointType<Fp2>,
-    messages: (Hex | ProjPointType<Fp2>)[],
-    publicKeys: (Hex | ProjPointType<Fp>)[],
+    signature: Uint8Array | ProjPointType<Fp2>,
+    messages: (Uint8Array | ProjPointType<Fp2>)[],
+    publicKeys: (Uint8Array | ProjPointType<Fp>)[],
     htfOpts?: htfBasicOpts
   ) => boolean;
   aggregatePublicKeys: {
-    (publicKeys: Hex[]): Uint8Array;
+    (publicKeys: Uint8Array[]): Uint8Array;
     (publicKeys: ProjPointType<Fp>[]): ProjPointType<Fp>;
   };
   aggregateSignatures: {
-    (signatures: Hex[]): Uint8Array;
+    (signatures: Uint8Array[]): Uint8Array;
     (signatures: ProjPointType<Fp2>[]): ProjPointType<Fp2>;
   };
   aggregateShortSignatures: {
-    (signatures: Hex[]): Uint8Array;
+    (signatures: Uint8Array[]): Uint8Array;
     (signatures: ProjPointType<Fp>[]): ProjPointType<Fp>;
   };
   millerLoopBatch: (pairs: [Precompute, Fp, Fp][]) => Fp12;
@@ -345,10 +347,12 @@ export function bls(CURVE: CurveType): CurveFn {
   const { ShortSignature } = CURVE.G1;
   const { Signature } = CURVE.G2;
 
-  type G1Hex = Hex | G1;
-  type G2Hex = Hex | G2;
+  type G1Hex = Uint8Array | G1;
+  type G2Hex = Uint8Array | G2;
   function normP1(point: G1Hex): G1 {
-    return point instanceof G1.ProjectivePoint ? (point as G1) : G1.ProjectivePoint.fromHex(point);
+    return point instanceof G1.ProjectivePoint
+      ? (point as G1)
+      : G1.ProjectivePoint.fromRawBytes(point);
   }
   function normP1Hash(point: G1Hex, htfOpts?: htfBasicOpts): G1 {
     return point instanceof G1.ProjectivePoint
@@ -356,7 +360,7 @@ export function bls(CURVE: CurveType): CurveFn {
       : (G1.hashToCurve(ensureBytes('point', point), htfOpts) as G1);
   }
   function normP2(point: G2Hex): G2 {
-    return point instanceof G2.ProjectivePoint ? point : Signature.fromHex(point);
+    return point instanceof G2.ProjectivePoint ? point : Signature.fromRawBytes(point);
   }
   function normP2Hash(point: G2Hex, htfOpts?: htfBasicOpts): G2 {
     return point instanceof G2.ProjectivePoint
@@ -378,7 +382,7 @@ export function bls(CURVE: CurveType): CurveFn {
 
   // Executes `hashToCurve` on the message and then multiplies the result by private key.
   // S = pk x H(m)
-  function sign(message: Hex, privateKey: PrivKey, htfOpts?: htfBasicOpts): Uint8Array;
+  function sign(message: Uint8Array, privateKey: PrivKey, htfOpts?: htfBasicOpts): Uint8Array;
   function sign(message: G2, privateKey: PrivKey, htfOpts?: htfBasicOpts): G2;
   function sign(message: G2Hex, privateKey: PrivKey, htfOpts?: htfBasicOpts): Uint8Array | G2 {
     const msgPoint = normP2Hash(message, htfOpts);
@@ -389,7 +393,7 @@ export function bls(CURVE: CurveType): CurveFn {
   }
 
   function signShortSignature(
-    message: Hex,
+    message: Uint8Array,
     privateKey: PrivKey,
     htfOpts?: htfBasicOpts
   ): Uint8Array;
@@ -450,7 +454,7 @@ export function bls(CURVE: CurveType): CurveFn {
 
   // Adds a bunch of public key points together.
   // pk1 + pk2 + pk3 = pkA
-  function aggregatePublicKeys(publicKeys: Hex[]): Uint8Array;
+  function aggregatePublicKeys(publicKeys: Uint8Array[]): Uint8Array;
   function aggregatePublicKeys(publicKeys: G1[]): G1;
   function aggregatePublicKeys(publicKeys: G1Hex[]): Uint8Array | G1 {
     aNonEmpty(publicKeys);
@@ -465,7 +469,7 @@ export function bls(CURVE: CurveType): CurveFn {
   }
 
   // Adds a bunch of signature points together.
-  function aggregateSignatures(signatures: Hex[]): Uint8Array;
+  function aggregateSignatures(signatures: Uint8Array[]): Uint8Array;
   function aggregateSignatures(signatures: G2[]): G2;
   function aggregateSignatures(signatures: G2Hex[]): Uint8Array | G2 {
     aNonEmpty(signatures);
@@ -479,7 +483,7 @@ export function bls(CURVE: CurveType): CurveFn {
   }
 
   // Adds a bunch of signature points together.
-  function aggregateShortSignatures(signatures: Hex[]): Uint8Array;
+  function aggregateShortSignatures(signatures: Uint8Array[]): Uint8Array;
   function aggregateShortSignatures(signatures: G1[]): G1;
   function aggregateShortSignatures(signatures: G1Hex[]): Uint8Array | G1 {
     aNonEmpty(signatures);

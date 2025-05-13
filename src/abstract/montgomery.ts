@@ -17,7 +17,6 @@ import {
 const _0n = BigInt(0);
 const _1n = BigInt(1);
 const _2n = BigInt(2);
-type Hex = string | Uint8Array;
 
 export type CurveType = {
   P: bigint; // finite field prime
@@ -28,10 +27,10 @@ export type CurveType = {
 };
 
 export type CurveFn = {
-  scalarMult: (scalar: Hex, u: Hex) => Uint8Array;
-  scalarMultBase: (scalar: Hex) => Uint8Array;
-  getSharedSecret: (privateKeyA: Hex, publicKeyB: Hex) => Uint8Array;
-  getPublicKey: (privateKey: Hex) => Uint8Array;
+  scalarMult: (scalar: Uint8Array, u: Uint8Array) => Uint8Array;
+  scalarMultBase: (scalar: Uint8Array) => Uint8Array;
+  getSharedSecret: (privateKeyA: Uint8Array, publicKeyB: Uint8Array) => Uint8Array;
+  getPublicKey: (privateKey: Uint8Array) => Uint8Array;
   utils: { randomPrivateKey: () => Uint8Array };
   GuBytes: Uint8Array;
 };
@@ -71,7 +70,7 @@ export function montgomery(curveDef: CurveType): CurveFn {
   function encodeU(u: bigint): Uint8Array {
     return numberToBytesLE(modP(u), fieldLen);
   }
-  function decodeU(u: Hex): bigint {
+  function decodeU(u: Uint8Array): bigint {
     const _u = ensureBytes('u coordinate', u, fieldLen);
     // RFC: When receiving such an array, implementations of X25519
     // (but not X448) MUST mask the most significant bit in the final byte.
@@ -82,10 +81,10 @@ export function montgomery(curveDef: CurveType): CurveFn {
     // - 1 through 2^448 - 1 for X448.
     return modP(bytesToNumberLE(_u));
   }
-  function decodeScalar(scalar: Hex): bigint {
+  function decodeScalar(scalar: Uint8Array): bigint {
     return bytesToNumberLE(adjustScalarBytes(ensureBytes('scalar', scalar, fieldLen)));
   }
-  function scalarMult(scalar: Hex, u: Hex): Uint8Array {
+  function scalarMult(scalar: Uint8Array, u: Uint8Array): Uint8Array {
     const pu = montgomeryLadder(decodeU(u), decodeScalar(scalar));
     // Some public keys are useless, of low-order. Curve author doesn't think
     // it needs to be validated, but we do it nonetheless.
@@ -94,7 +93,7 @@ export function montgomery(curveDef: CurveType): CurveFn {
     return encodeU(pu);
   }
   // Computes public key from private. By doing scalar multiplication of base point.
-  function scalarMultBase(scalar: Hex): Uint8Array {
+  function scalarMultBase(scalar: Uint8Array): Uint8Array {
     return scalarMult(scalar, GuBytes);
   }
 
@@ -157,8 +156,9 @@ export function montgomery(curveDef: CurveType): CurveFn {
   return {
     scalarMult,
     scalarMultBase,
-    getSharedSecret: (privateKey: Hex, publicKey: Hex) => scalarMult(privateKey, publicKey),
-    getPublicKey: (privateKey: Hex): Uint8Array => scalarMultBase(privateKey),
+    getSharedSecret: (privateKey: Uint8Array, publicKey: Uint8Array) =>
+      scalarMult(privateKey, publicKey),
+    getPublicKey: (privateKey: Uint8Array): Uint8Array => scalarMultBase(privateKey),
     utils: { randomPrivateKey: () => CURVE.randomBytes!(fieldLen) },
     GuBytes: GuBytes.slice(),
   };
