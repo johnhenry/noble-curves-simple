@@ -1,11 +1,11 @@
-import { sha224, sha256, sha384, sha512 } from '@noble/hashes/sha2';
-import { sha3_224, sha3_256, sha3_384, sha3_512, shake128, shake256 } from '@noble/hashes/sha3';
+import { sha224, sha256, sha384, sha512 } from '@noble/hashes/sha2.js';
+import { sha3_224, sha3_256, sha3_384, sha3_512, shake128, shake256 } from '@noble/hashes/sha3.js';
 import { describe, should } from 'micro-should';
 import { deepStrictEqual, throws } from 'node:assert';
-import { bytesToHex, hexToBytes, utf8ToBytes } from '../esm/abstract/utils.js';
-import { DER } from '../esm/abstract/weierstrass.js';
-import { p256, p384, p521, secp256r1, secp384r1, secp521r1 } from '../esm/nist.js';
-import { secp256k1 } from '../esm/secp256k1.js';
+import { bytesToHex, hexToBytes, utf8ToBytes } from '../abstract/utils.js';
+import { DER } from '../abstract/weierstrass.js';
+import { p256, p384, p521, secp256r1, secp384r1, secp521r1 } from '../nist.js';
+import { secp256k1 } from '../secp256k1.js';
 import { p192, p224, secp192r1, secp224r1 } from './_more-curves.helpers.js';
 import { json } from './utils.js';
 const ecdsa = json('./wycheproof/ecdsa_test.json');
