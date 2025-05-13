@@ -5,7 +5,7 @@
  * @module
  */
 /*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) */
-import { anumber } from '@noble/hashes/utils';
+import { anumber } from '@noble/hashes/utils.js';
 import {
   bitMask,
   bytesToNumberBE,
