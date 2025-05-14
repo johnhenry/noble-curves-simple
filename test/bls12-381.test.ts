@@ -4,9 +4,9 @@ import { deepStrictEqual, throws } from 'node:assert';
 import { readFileSync } from 'node:fs';
 import { wNAF } from '../abstract/curve.js';
 import { hash_to_field } from '../abstract/hash-to-curve.js';
-import { bytesToHex, bytesToNumberBE, hexToBytes, utf8ToBytes } from '../abstract/utils.js';
+import { hexToBytes as bytes, bytesToNumberBE, bytesToHex as hexx, utf8ToBytes } from '../abstract/utils.js';
 import { bls12_381 as bls, bls12_381 } from '../bls12-381.js';
-import { json } from './utils.js';
+import { json } from './utils.ts';
 
 import * as utils from '../abstract/utils.js';
 
@@ -55,10 +55,10 @@ const getPubKey = (priv) => bls.getPublicKey(priv);
 function replaceZeroPoint(item) {
   const zeros = '0000000000000000000000000000000000000000000000000000000000000000';
   const ones = '1000000000000000000000000000000000000000000000000000000000000001';
-  return item === zeros ? ones : item;
+  return bytes(item === zeros ? ones : item);
 }
 
-function equal(a, b, comment) {
+function equal(a, b, comment='') {
   deepStrictEqual(a.equals(b), true, `eq(${comment})`);
 }
 const { Fp, Fp2 } = bls.fields;
@@ -611,7 +611,7 @@ describe('bls12-381 Point', () => {
 describe('bls12-381/basic', () => {
   should('construct point G1 from its uncompressed form (Raw Bytes)', () => {
     // Test Zero
-    const g1 = G1Point.fromHex(B_192_40);
+    const g1 = G1Point.fromRawBytes(B_192_40);
     deepStrictEqual(g1.x, G1Point.ZERO.x);
     deepStrictEqual(g1.y, G1Point.ZERO.y);
     // Test Non-Zero
@@ -626,7 +626,7 @@ describe('bls12-381/basic', () => {
       )
     );
 
-    const g1_ = G1Point.fromHex(
+    const g1_ = G1Point.fromRawBytes(
       '17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1'
     );
 
@@ -636,7 +636,7 @@ describe('bls12-381/basic', () => {
 
   should('construct point G1 from its uncompressed form (Hex)', () => {
     // Test Zero
-    const g1 = G1Point.fromHex(B_192_40);
+    const g1 = G1Point.fromRawBytes(B_192_40);
 
     deepStrictEqual(g1.x, G1Point.ZERO.x);
     deepStrictEqual(g1.y, G1Point.ZERO.y);
@@ -652,7 +652,7 @@ describe('bls12-381/basic', () => {
       )
     );
 
-    const g1_ = G1Point.fromHex(
+    const g1_ = G1Point.fromRawBytes(
       '17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1'
     );
 
@@ -823,7 +823,7 @@ describe('bls12-381/basic', () => {
   should('compress and decompress G1 points', () => {
     const priv = G1Point.fromPrivateKey(42n);
     const publicKey = priv.toHex(true);
-    const decomp = G1Point.fromHex(publicKey);
+    const decomp = G1Point.fromRawBytes(publicKey);
     deepStrictEqual(publicKey, decomp.toHex(true));
   });
   should('not compress and decompress zero G1 point', () => {
@@ -888,18 +888,18 @@ describe('bls12-381/basic', () => {
     for (let vector of G1_VECTORS) {
       const [priv, msg, expected] = vector;
       const sig = bls.signShortSignature(msg, priv);
-      deepStrictEqual(bytesToHex(sig), expected);
+      deepStrictEqual(hexx(sig), expected);
       deepStrictEqual(bls.ShortSignature.toRawBytes(bls.ShortSignature.fromHex(sig)), sig);
-      deepStrictEqual(bls.ShortSignature.toHex(bls.ShortSignature.fromHex(sig)), bytesToHex(sig));
+      deepStrictEqual(bls.ShortSignature.toHex(bls.ShortSignature.fromHex(sig)), hexx(sig));
     }
   });
   should(`produce correct signatures (${G2_VECTORS.length} vectors)`, () => {
     for (let vector of G2_VECTORS) {
       const [priv, msg, expected] = vector;
       const sig = bls.sign(msg, priv);
-      deepStrictEqual(bytesToHex(sig), expected);
+      deepStrictEqual(hexx(sig), expected);
       deepStrictEqual(bls.Signature.toRawBytes(bls.Signature.fromHex(sig)), sig);
-      deepStrictEqual(bls.Signature.toHex(bls.Signature.fromHex(sig)), bytesToHex(sig));
+      deepStrictEqual(bls.Signature.toHex(bls.Signature.fromHex(sig)), hexx(sig));
     }
   });
   should(`produce correct scalars (${SCALAR_VECTORS.length} vectors)`, () => {
@@ -1180,7 +1180,7 @@ describe('verify()', () => {
       const pub = bls.getPublicKey(priv);
       const res = bls.verify(sig, msg, pub);
       deepStrictEqual(res, true, `${priv}-${msg}`);
-      const resHex = bls.verify(bytesToHex(sig), msg, pub);
+      const resHex = bls.verify(hexx(sig), msg, pub);
       deepStrictEqual(resHex, true, `${priv}-${msg}-hex`);
     }
   });
@@ -1202,7 +1202,7 @@ describe('verify()', () => {
       const invPub = bls.getPublicKey(invPriv);
       const res = bls.verify(sig, msg, invPub);
       deepStrictEqual(res, false);
-      const resHex = bls.verify(bytesToHex(sig), msg, invPub);
+      const resHex = bls.verify(hexx(sig), msg, invPub);
       deepStrictEqual(resHex, false);
     }
   });
@@ -1213,7 +1213,7 @@ describe('verify()', () => {
       const pub = bls.getPublicKeyForShortSignatures(priv);
       const res = bls.verifyShortSignature(sig, msg, pub);
       deepStrictEqual(res, true, `${priv}-${msg}`);
-      const resHex = bls.verifyShortSignature(bytesToHex(sig), msg, pub);
+      const resHex = bls.verifyShortSignature(hexx(sig), msg, pub);
       deepStrictEqual(resHex, true, `${priv}-${msg}`);
     }
   });
@@ -1225,7 +1225,7 @@ describe('verify()', () => {
       const pub = bls.getPublicKeyForShortSignatures(priv);
       const res = bls.verifyShortSignature(sig, invMsg, pub);
       deepStrictEqual(res, false);
-      const resHex = bls.verifyShortSignature(bytesToHex(sig), invMsg, pub);
+      const resHex = bls.verifyShortSignature(hexx(sig), invMsg, pub);
       deepStrictEqual(resHex, false);
     }
   });
@@ -1237,7 +1237,7 @@ describe('verify()', () => {
       const invPub = bls.getPublicKeyForShortSignatures(invPriv);
       const res = bls.verifyShortSignature(sig, msg, invPub);
       deepStrictEqual(res, false);
-      const resHex = bls.verifyShortSignature(bytesToHex(sig), msg, invPub);
+      const resHex = bls.verifyShortSignature(hexx(sig), msg, invPub);
       deepStrictEqual(resHex, false);
     }
   });
@@ -1252,7 +1252,7 @@ describe('verify()', () => {
           const aggregatedSignature = bls.aggregateSignatures(signatures);
           deepStrictEqual(bls.verifyBatch(aggregatedSignature, messages, publicKey), true);
           deepStrictEqual(
-            bls.verifyBatch(bytesToHex(aggregatedSignature), messages, publicKey),
+            bls.verifyBatch(hexx(aggregatedSignature), messages, publicKey),
             true
           );
         })
@@ -1274,7 +1274,7 @@ describe('verify()', () => {
             messages.every((m, i) => m === wrongMessages[i])
           );
           deepStrictEqual(
-            bls.verifyBatch(bytesToHex(aggregatedSignature), wrongMessages, publicKey),
+            bls.verifyBatch(hexx(aggregatedSignature), wrongMessages, publicKey),
             messages.every((m, i) => m === wrongMessages[i])
           );
         })
@@ -1300,7 +1300,7 @@ describe('verify()', () => {
               wrongPrivateKeys.every((p, i) => p === privateKeys[i])
             );
             deepStrictEqual(
-              bls.verifyBatch(bytesToHex(aggregatedSignature), messages, wrongPublicKeys),
+              bls.verifyBatch(hexx(aggregatedSignature), messages, wrongPublicKeys),
               wrongPrivateKeys.every((p, i) => p === privateKeys[i])
             );
           }
@@ -1321,7 +1321,7 @@ describe('verify()', () => {
           // Counterexample: ["0000000000000000000000000000000000000000000000000000000000000000",[4n,52435875175126190479447740508185965837690552500527637822603658699938581184445n,43n,75n,52435875175126190479447740508185965837690552500527637822603658699938581184459n]]
           deepStrictEqual(bls.verify(aggregatedSignature, message, aggregatedPublicKey), true);
           deepStrictEqual(
-            bls.verify(bytesToHex(aggregatedSignature), message, aggregatedPublicKey),
+            bls.verify(hexx(aggregatedSignature), message, aggregatedPublicKey),
             true
           );
         })
@@ -1340,7 +1340,7 @@ describe('verify()', () => {
             message === wrongMessage
           );
           deepStrictEqual(
-            bls.verify(bytesToHex(aggregatedSignature), wrongMessage, aggregatedPublicKey),
+            bls.verify(hexx(aggregatedSignature), wrongMessage, aggregatedPublicKey),
             message === wrongMessage
           );
         })
@@ -1362,7 +1362,7 @@ describe('bls12-381 deterministic', () => {
   should('Killic based/Pairing', () => {
     const t = bls.pairing(G1Point.BASE, G2Point.BASE);
     deepStrictEqual(
-      bytesToHex(Fp12.toBytes(t)),
+      hexx(Fp12.toBytes(t)),
       killicHex([
         '0f41e58663bf08cf068672cbd01a7ec73baca4d72ca93544deff686bfd6df543d48eaa24afe47e1efde449383b676631',
         '04c581234d086a9902249b64728ffd21a189e87935a954051c7cdba7b3872629a4fafc05066245cb9108f0242d0fe3ef',
@@ -1384,7 +1384,7 @@ describe('bls12-381 deterministic', () => {
     let p2 = G2Point.BASE;
     for (let v of pairingVectors) {
       deepStrictEqual(
-        bytesToHex(Fp12.toBytes(bls.pairing(p1, p2))),
+        hexx(Fp12.toBytes(bls.pairing(p1, p2))),
         // Reverse order
         v.match(/.{96}/g).reverse().join('')
       );
@@ -1397,7 +1397,7 @@ describe('bls12-381 deterministic', () => {
     let p1 = G1Point.ZERO;
     for (let i = 0; i < zkVectors.G1_Compressed.length; i++) {
       const t = zkVectors.G1_Compressed[i];
-      const P = G1Point.fromHex(t);
+      const P = G1Point.fromRawBytes(t);
       deepStrictEqual(P.toHex(true), t);
       deepStrictEqual(P.equals(p1), true);
       deepStrictEqual(p1.toHex(true), t);
@@ -1413,7 +1413,7 @@ describe('bls12-381 deterministic', () => {
     let p1 = G1Point.ZERO;
     for (let i = 0; i < zkVectors.G1_Uncompressed.length; i++) {
       const t = zkVectors.G1_Uncompressed[i];
-      const P = G1Point.fromHex(t);
+      const P = G1Point.fromRawBytes(t);
       deepStrictEqual(P.toHex(false), t);
       deepStrictEqual(P.equals(p1), true);
       deepStrictEqual(p1.toHex(false), t);
@@ -1478,16 +1478,16 @@ describe('bls12-381 deterministic', () => {
     deepStrictEqual(baseU.length, 96);
     const compressedBit = baseU.slice();
     compressedBit[0] |= 0b1000_0000; // add compression bit
-    throws(() => G1Point.fromHex(compressedBit), 'compressed bit'); // uncompressed point with compressed length
+    throws(() => G1Point.fromRawBytes(compressedBit), 'compressed bit'); // uncompressed point with compressed length
     const uncompressedBit = baseC.slice();
     uncompressedBit[0] &= 0b0111_1111; // remove compression bit
-    throws(() => G1Point.fromHex(uncompressedBit), 'uncompressed bit');
+    throws(() => G1Point.fromRawBytes(uncompressedBit), 'uncompressed bit');
     const infinityUncompressed = baseU.slice();
     infinityUncompressed[0] |= 0b0100_0000;
-    throws(() => G1Point.fromHex(compressedBit), 'infinity uncompressed');
+    throws(() => G1Point.fromRawBytes(compressedBit), 'infinity uncompressed');
     const infinityCompressed = baseC.slice();
     infinityCompressed[0] |= 0b0100_0000;
-    throws(() => G1Point.fromHex(compressedBit), 'infinity compressed');
+    throws(() => G1Point.fromRawBytes(compressedBit), 'infinity compressed');
   });
   should(`zkcrypt/G2 encoding edge cases`, () => {
     const Fp = bls12_381.fields.Fp;
@@ -1509,22 +1509,22 @@ describe('bls12-381 deterministic', () => {
     deepStrictEqual(baseU.length, 192);
     const compressedBit = baseU.slice();
     compressedBit[0] |= 0b1000_0000; // add compression bit
-    throws(() => G2Point.fromHex(compressedBit), 'compressed bit'); // uncompressed point with compressed length
+    throws(() => G2Point.fromRawBytes(compressedBit), 'compressed bit'); // uncompressed point with compressed length
     const uncompressedBit = baseC.slice();
     uncompressedBit[0] &= 0b0111_1111; // remove compression bit
-    throws(() => G2Point.fromHex(uncompressedBit), 'uncompressed bit');
+    throws(() => G2Point.fromRawBytes(uncompressedBit), 'uncompressed bit');
     const infinityUncompressed = baseU.slice();
     infinityUncompressed[0] |= 0b0100_0000;
-    throws(() => G2Point.fromHex(compressedBit), 'infinity uncompressed');
+    throws(() => G2Point.fromRawBytes(compressedBit), 'infinity uncompressed');
     const infinityCompressed = baseC.slice();
     infinityCompressed[0] |= 0b0100_0000;
-    throws(() => G2Point.fromHex(compressedBit), 'infinity compressed');
+    throws(() => G2Point.fromRawBytes(compressedBit), 'infinity compressed');
     infinityCompressed[0] = 0b00100000;
-    throws(() => G2Point.fromHex(compressedBit), '(!compressed && !infinity && sort)');
+    throws(() => G2Point.fromRawBytes(compressedBit), '(!compressed && !infinity && sort)');
     infinityCompressed[0] = 0b01100000;
-    throws(() => G2Point.fromHex(compressedBit), '(!compressed && infinity && sort)');
+    throws(() => G2Point.fromRawBytes(compressedBit), '(!compressed && infinity && sort)');
     infinityCompressed[0] = 0b11100000;
-    throws(() => G2Point.fromHex(compressedBit), '(sort && infinity && compressed)');
+    throws(() => G2Point.fromRawBytes(compressedBit), '(sort && infinity && compressed)');
   });
 
   describe('EIP2537', () => {
@@ -1541,7 +1541,7 @@ describe('bls12-381 deterministic', () => {
 
     should('G1', () => {
       for (const v of eip2537.G1) {
-        const input = hexToBytes(v.Input);
+        const input = bytes(v.Input);
         const { x, y } = mapToCurveEth(bls12_381.G1, [bytesToNumberBE(input)]).toAffine();
         const val = toEthHex(x) + toEthHex(y);
         deepStrictEqual(val, v.Expected);

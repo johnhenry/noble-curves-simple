@@ -3,7 +3,7 @@ import { describe, should } from 'micro-should';
 import { deepStrictEqual, notDeepStrictEqual, throws } from 'node:assert';
 import * as mod from '../abstract/modular.js';
 import { isBytes, bytesToHex as toHex } from '../abstract/utils.js';
-import { getTypeTests, json } from './utils.js';
+import { getTypeTests, json } from './utils.ts';
 // Generic tests for all curves in package
 import { sha256, sha512 } from '@noble/hashes/sha2.js';
 import { randomBytes } from '@noble/hashes/utils.js';
@@ -494,6 +494,7 @@ for (const name in CURVES) {
         describe(op, () => {
           should('type check', () => {
             for (let [item, repr_] of getTypeTests()) {
+              // @ts-ignore
               throws(() => G[1][op](item), repr_);
             }
             throws(() => G[1][op](0), '0');
@@ -515,6 +516,7 @@ for (const name in CURVES) {
       should('equals type check', () => {
         const op = 'equals';
         for (let [item, repr_] of getTypeTests()) {
+          // @ts-ignore
           throws(() => G[1][op](item), repr_);
         }
         throws(() => G[1].equals(0), '0');
@@ -533,6 +535,7 @@ for (const name in CURVES) {
         describe(op, () => {
           should('type check', () => {
             for (let [item, repr_] of getTypeTests()) {
+              // @ts-ignore
               throws(() => G[1][op](item), repr_);
             }
             G[1][op](1n);
@@ -562,7 +565,7 @@ for (const name in CURVES) {
         });
         should('MSM random', () =>
           fc.assert(
-            fc.property(fc.array(fc.tuple(FC_BIGINT, FC_BIGINT)), FC_BIGINT, (pairs) => {
+            fc.property(fc.array(fc.tuple(FC_BIGINT, FC_BIGINT)), (pairs) => {
               let total = 0n;
               const scalars = [];
               const points = [];
@@ -593,7 +596,7 @@ for (const name in CURVES) {
         });
         should('precomputeMSMUnsafe random', () =>
           fc.assert(
-            fc.property(fc.array(fc.tuple(FC_BIGINT, FC_BIGINT)), FC_BIGINT, (pairs) => {
+            fc.property(fc.array(fc.tuple(FC_BIGINT, FC_BIGINT)), (pairs) => {
               const Point = C.ExtendedPoint || C.ProjectivePoint;
               if (!Point) throw new Error('Unknown point');
               const field = Field(CURVE_ORDER);
@@ -664,6 +667,7 @@ for (const name in CURVES) {
     // Generic complex things (getPublicKey/sign/verify/getSharedSecret)
     should('.getPublicKey() type check', () => {
       for (let [item, repr_] of getTypeTests()) {
+        // @ts-ignore
         throws(() => C.getPublicKey(item), repr_);
       }
       // NOTE: passes because of disabled hex padding checks for starknet, maybe enable?
@@ -722,8 +726,11 @@ for (const name in CURVES) {
         const priv = C.utils.randomPrivateKey();
         C.sign(msg, priv);
         for (let [item, repr_] of getTypeTests()) {
+          // @ts-ignore
           throws(() => C.sign(msg, item), repr_);
+          // @ts-ignore
           if (!repr_.startsWith('ui8a') && repr_ !== '""') {
+            // @ts-ignore
             throws(() => C.sign(item, priv), repr_);
           }
         }
@@ -761,9 +768,13 @@ for (const name in CURVES) {
           const pub = C.getPublicKey(priv);
           C.verify(sig, msg, pub);
           for (let [item, repr_] of getTypeTests()) {
+            // @ts-ignore
             if (repr_.startsWith('ui8a') || repr_.startsWith('"')) continue;
+            // @ts-ignore
             throws(() => C.verify(item, msg, pub), `verify(${repr_}, _, _)`);
+            // @ts-ignore
             throws(() => C.verify(sig, item, pub), `verify(_, ${repr_}, _)`);
+            // @ts-ignore
             throws(() => C.verify(sig, msg, item), `verify(_, _, ${repr_})`);
           }
         });
@@ -866,11 +877,16 @@ for (const name in CURVES) {
 describe('edge cases', () => {
   should('bigInt private keys', () => {
     // Doesn't support bigints anymore
+    // @ts-ignore
     throws(() => ed25519.sign('', 123n));
+    // @ts-ignore
     throws(() => ed25519.getPublicKey(123n));
+    // @ts-ignore
     throws(() => x25519.getPublicKey(123n));
     // Weierstrass still supports
+    // @ts-ignore
     secp256k1.getPublicKey(123n);
+    // @ts-ignore
     secp256k1.sign('', 123n);
   });
 

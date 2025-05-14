@@ -3,7 +3,7 @@ import { describe, should } from 'micro-should';
 import { deepStrictEqual, throws } from 'node:assert';
 import { invert, mod } from '../abstract/modular.js';
 import { bytesToHex, concatBytes, hexToBytes } from '../abstract/utils.js';
-import { getTypeTests } from './utils.js';
+import { getTypeTests } from './utils.ts';
 
 describe('utils', () => {
   const staticHexVectors = [
@@ -17,12 +17,14 @@ describe('utils', () => {
     for (let v of staticHexVectors) deepStrictEqual(hexToBytes(v.hex.toUpperCase()), v.bytes);
     for (let [v, repr] of getTypeTests()) {
       if (repr === '""') continue;
+      // @ts-ignore
       throws(() => hexToBytes(v));
     }
   });
   should('bytesToHex', () => {
     for (let v of staticHexVectors) deepStrictEqual(bytesToHex(v.bytes), v.hex);
     for (let [v, repr] of getTypeTests()) {
+      // @ts-ignore
       if (repr.startsWith('ui8a')) continue;
       throws(() => bytesToHex(v));
     }

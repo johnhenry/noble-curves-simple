@@ -1,9 +1,9 @@
-import { bytesToHex as hex, hexToBytes } from '@noble/hashes/utils.js';
+import { hexToBytes as bytes, bytesToHex as hex } from '@noble/hashes/utils.js';
 import * as fc from 'fast-check';
 import { describe, should } from 'micro-should';
 import { deepStrictEqual, throws } from 'node:assert';
 import { readFileSync } from 'node:fs';
-import { json } from './utils.js';
+import { json } from './utils.ts';
 // prettier-ignore
 import {
   bytesToNumberBE,
@@ -56,7 +56,7 @@ describe('secp256k1', () => {
       deepStrictEqual(toBEHex(point2.x), x);
       deepStrictEqual(toBEHex(point2.y), y);
 
-      const point3 = Point.fromHex(secp.getPublicKey(hexToBytes(toBEHex(BigInt(priv)))));
+      const point3 = Point.fromHex(secp.getPublicKey(bytes(toBEHex(BigInt(priv)))));
       deepStrictEqual(toBEHex(point3.x), x);
       deepStrictEqual(toBEHex(point3.y), y);
     }
@@ -81,7 +81,7 @@ describe('secp256k1', () => {
       deepStrictEqual(toBEHex(point2.x), x);
       deepStrictEqual(toBEHex(point2.y), y);
 
-      const point3 = Point.fromHex(secp.getPublicKey(hexToBytes(toBEHex(BigInt(priv)))));
+      const point3 = Point.fromHex(secp.getPublicKey(bytes(toBEHex(BigInt(priv)))));
       deepStrictEqual(toBEHex(point3.x), x);
       deepStrictEqual(toBEHex(point3.y), y);
     }
@@ -311,7 +311,7 @@ describe('secp256k1', () => {
           '3045022100d18990bba7832bb283e3ecf8700b67beb39acc73f4200ed1c331247c46edccc602202e5c8bbfe47ae159512c583b30a3fa86575cddc62527a03de7756517ae4c6c73',
         ],
       ];
-      const privKey = hexToBytes(
+      const privKey = bytes(
         '0101010101010101010101010101010101010101010101010101010101010101'
       );
       for (const [msg, exp] of CASES) {
@@ -344,7 +344,7 @@ describe('secp256k1', () => {
 
     should('handle one byte {extraEntropy}', () => {
       const extraEntropy = '01';
-      const privKey = hexToBytes(
+      const privKey = bytes(
         '0101010101010101010101010101010101010101010101010101010101010101'
       );
       const msg = 'd1a9dc8ed4e46a6a3e5e594615ca351d7d7ef44df1e4c94c1802f3592183794b';
@@ -358,7 +358,7 @@ describe('secp256k1', () => {
     should('handle 48 bytes {extraEntropy}', () => {
       const extraEntropy =
         '000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000001';
-      const privKey = hexToBytes(
+      const privKey = bytes(
         '0101010101010101010101010101010101010101010101010101010101010101'
       );
       const msg = 'd1a9dc8ed4e46a6a3e5e594615ca351d7d7ef44df1e4c94c1802f3592183794b';
@@ -576,7 +576,7 @@ describe('secp256k1', () => {
       },
 
       pointMultiply: (p, tweak, isCompressed) => {
-        if (typeof tweak === 'string') tweak = hexToBytes(tweak);
+        if (typeof tweak === 'string') tweak = bytes(tweak);
         const t = bytesToNumberBE(tweak);
         return Point.fromHex(p).multiply(t).toRawBytes(isCompressed);
       },
@@ -630,7 +630,7 @@ describe('secp256k1', () => {
       for (let test of group.tests) {
         const h = selectHash(secp);
 
-        const m = h(hexToBytes(test.msg));
+        const m = h(bytes(test.msg));
         if (test.result === 'valid' || test.result === 'acceptable') {
           let sig;
           try {

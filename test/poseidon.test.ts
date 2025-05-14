@@ -3,7 +3,7 @@ import { deepStrictEqual } from 'node:assert';
 import * as mod from '../abstract/modular.js';
 import * as poseidon from '../abstract/poseidon.js';
 import * as stark from './_poseidon.helpers.js';
-import { json } from './utils.js';
+import { json } from './utils.ts';
 const vecp = json('./vectors/poseidon.json');
 
 const parseArrBig = (arr) => arr.map((n) => BigInt(n));

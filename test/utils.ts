@@ -1,3 +1,4 @@
+import { hexToBytes } from '@noble/hashes/utils.js';
 import { readFileSync } from 'node:fs';
 import { dirname, join as joinPath } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +9,12 @@ const _dirname = dirname(fileURLToPath(import.meta.url));
 export function jsonGZ(path) {
   const unz = gunzipSync(readFileSync(joinPath(_dirname, path)));
   return JSON.parse(unz.toString('utf8'));
+}
+
+export function byteify(obj: any) {
+  return Object.fromEntries(Object.entries(obj).map(([k, v]) => {
+    return [k, hexToBytes(v as any)];
+  }))
 }
 
 export function json(path) {

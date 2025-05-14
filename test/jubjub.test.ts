@@ -31,14 +31,14 @@ describe('jubjub', () => {
     );
     // Multiplicative generator (sqrt == null), not on curve.
     throws(() =>
-      Point.fromHex(
+      Point.fromRawBytes(
         new Uint8Array([
           7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
           0, 0,
         ])
       )
     );
-    const tmp = Point.fromHex(
+    const tmp = Point.fromRawBytes(
       new Uint8Array([
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0,
@@ -51,10 +51,10 @@ describe('jubjub', () => {
     const S2 = G_SPEND.double().toRawBytes();
     const P = G_PROOF.toRawBytes();
     const P2 = G_PROOF.double().toRawBytes();
-    const S_exp = Point.fromHex(S);
-    const S2_exp = Point.fromHex(S2);
-    const P_exp = Point.fromHex(P);
-    const P2_exp = Point.fromHex(P2);
+    const S_exp = Point.fromRawBytes(S);
+    const S2_exp = Point.fromRawBytes(S2);
+    const P_exp = Point.fromRawBytes(P);
+    const P2_exp = Point.fromRawBytes(P2);
     deepStrictEqual(getXY(G_SPEND.toAffine()), getXY(S_exp));
     deepStrictEqual(getXY(G_SPEND.double().toAffine()), getXY(S2_exp));
     deepStrictEqual(getXY(G_PROOF.toAffine()), getXY(P_exp));

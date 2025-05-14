@@ -24,8 +24,7 @@ import {
   bytesToNumberLE,
   ensureBytes,
   equalBytes,
-  type Hex,
-  numberToBytesLE,
+  numberToBytesLE
 } from './abstract/utils.ts';
 
 // 2n**255n - 19n
@@ -199,8 +198,8 @@ export const x25519: XCurveFn = /* @__PURE__ */ (() =>
  *   const aPriv = x25519.utils.randomPrivateKey();
  *   x25519.getSharedSecret(aPriv, edwardsToMontgomeryPub(someonesPub))
  */
-export function edwardsToMontgomeryPub(edwardsPub: Hex): Uint8Array {
-  const { y } = ed25519.ExtendedPoint.fromHex(edwardsPub);
+export function edwardsToMontgomeryPub(edwardsPub: Uint8Array): Uint8Array {
+  const { y } = ed25519.ExtendedPoint.fromRawBytes(edwardsPub);
   const _1n = BigInt(1);
   return Fp.toBytes(Fp.create((_1n + y) * Fp.inv(_1n - y)));
 }

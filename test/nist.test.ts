@@ -2,12 +2,12 @@ import { sha224, sha256, sha384, sha512 } from '@noble/hashes/sha2.js';
 import { sha3_224, sha3_256, sha3_384, sha3_512, shake128, shake256 } from '@noble/hashes/sha3.js';
 import { describe, should } from 'micro-should';
 import { deepStrictEqual, throws } from 'node:assert';
-import { bytesToHex, hexToBytes, utf8ToBytes } from '../abstract/utils.js';
+import { hexToBytes as bytes, bytesToHex, utf8ToBytes } from '../abstract/utils.js';
 import { DER } from '../abstract/weierstrass.js';
 import { p256, p384, p521, secp256r1, secp384r1, secp521r1 } from '../nist.js';
 import { secp256k1 } from '../secp256k1.js';
 import { p192, p224, secp192r1, secp224r1 } from './_more-curves.helpers.js';
-import { json } from './utils.js';
+import { json } from './utils.ts';
 const ecdsa = json('./wycheproof/ecdsa_test.json');
 const ecdh = json('./wycheproof/ecdh_test.json');
 const rfc6979 = json('./vectors/rfc6979.json');
@@ -320,13 +320,13 @@ function runWycheproof(name, CURVE, group, index) {
   deepStrictEqual(pubKey.y, BigInt(`0x${key.wy}`));
   const pubR = pubKey.toRawBytes();
   for (const test of group.tests) {
-    const m = CURVE.CURVE.hash(hexToBytes(test.msg));
+    const m = CURVE.CURVE.hash(bytes(test.msg));
     const { sig } = test;
     if (test.result === 'valid' || test.result === 'acceptable') {
-      const verified = CURVE.verify(sig, m, pubR, { lowS: name === 'secp256k1' });
+      const verified = CURVE.verify(bytes(sig), m, pubR, { lowS: name === 'secp256k1' });
       if (name === 'secp256k1') {
         // lowS: true for secp256k1
-        deepStrictEqual(verified, !CURVE.Signature.fromDER(sig).hasHighS(), `${index}: valid`);
+        deepStrictEqual(verified, !CURVE.Signature.fromDER(bytes(sig)).hasHighS(), `${index}: valid`);
       } else {
         deepStrictEqual(verified, true, `${index}: valid`);
       }
@@ -362,7 +362,7 @@ describe('wycheproof ECDSA', () => {
         // These old Wycheproof vectors which still accept missing zero, new one is not.
         if (test.flags.includes('MissingZero') && test.result === 'acceptable')
           test.result = 'invalid';
-        const m = CURVE.CURVE.hash(hexToBytes(test.msg));
+        const m = CURVE.CURVE.hash(bytes(test.msg));
         if (test.result === 'valid' || test.result === 'acceptable') {
           const verified = CURVE.verify(test.sig, m, pubKey.toHex(), { lowS: hasLowS });
           if (hasLowS) {
@@ -466,10 +466,10 @@ should('have proper GLV endomorphism logic in secp256k1', () => {
 
 should('handle edge-case in P521', () => {
   // elliptic 6.6.0 edge-case
-  const privKey = hexToBytes(
+  const privKey = bytes(
     '01535d22d63de9195efd4c41358ddc89c68b6cc202b558fbf48a09e95dddf953afc1b4cfed6df0f3330f986735085e367fd07030c3ab49dcd3461197b00f09a064fb'
   );
-  const msg = hexToBytes('12f830e9591916ec');
+  const msg = bytes('12f830e9591916ec');
   const sig =
     '308188024201e92eeaf15414d4af3ee933825131867b6cb10234f28336ac976a' +
     '99127139f23100458a9ee7184bfa64540ba385331eb3b469f491b3da013c42ad' +

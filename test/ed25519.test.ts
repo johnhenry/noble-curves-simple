@@ -1,7 +1,7 @@
 import {
+  hexToBytes as bytes,
   bytesToHex,
   concatBytes,
-  hexToBytes,
   randomBytes,
   utf8ToBytes,
 } from '@noble/hashes/utils.js';
@@ -10,7 +10,7 @@ import { describe, should } from 'micro-should';
 import { deepStrictEqual, strictEqual, throws } from 'node:assert';
 import { readFileSync } from 'node:fs';
 import { ed25519 as ed, ED25519_TORSION_SUBGROUP, numberToBytesLE } from './ed25519.helpers.js';
-import { json } from './utils.js';
+import { json } from './utils.ts';
 // Old vectors allow to test sign() because they include private key
 const ed25519vectors_OLD = json('./ed25519/ed25519_test_OLD.json');
 const ed25519vectors = json('./wycheproof/ed25519_test.json');
@@ -26,7 +26,7 @@ describe('ed25519', () => {
 
   function to32Bytes(numOrStr) {
     let hex = typeof numOrStr === 'string' ? numOrStr : numOrStr.toString(16);
-    return hexToBytes(hex.padStart(64, '0'));
+    return bytes(hex.padStart(64, '0'));
   }
 
   ed.utils.precompute(8);
@@ -79,8 +79,8 @@ describe('ed25519', () => {
   });
   const privKey = to32Bytes('a665a45920422f9d417e4867ef');
   const wrongPriv = to32Bytes('a675a45920422f9d417e4867ef');
-  const msg = hexToBytes('874f9960c5d2b7a9b5fad383e1ba44719ebb743a');
-  const wrongMsg = hexToBytes('589d8c7f1da0a24bc07b7381ad48b1cfc211af1c');
+  const msg = bytes('874f9960c5d2b7a9b5fad383e1ba44719ebb743a');
+  const wrongMsg = bytes('589d8c7f1da0a24bc07b7381ad48b1cfc211af1c');
   describe('basic methods', () => {
     should('sign and verify', () => {
       const publicKey = ed.getPublicKey(privKey);
@@ -165,9 +165,9 @@ describe('ed25519', () => {
       // Calculate
       const pub = ed.getPublicKey(to32Bytes(priv));
       deepStrictEqual(hex(pub), expectedPub);
-      deepStrictEqual(pub, Point.fromHex(pub).toRawBytes());
+      deepStrictEqual(pub, Point.fromRawBytes(pub).toRawBytes());
 
-      const signature = hex(ed.sign(msg, priv));
+      const signature = hex(ed.sign(bytes(msg), bytes(priv)));
       // console.log('vector', i);
       // expect(pub).toBe(expectedPub);
       deepStrictEqual(signature, expectedSignature);
@@ -177,9 +177,9 @@ describe('ed25519', () => {
   // https://tools.ietf.org/html/rfc8032#section-7
   should('rfc8032 vectors/should create right signature for 0x9d and empty string', () => {
     const privateKey = '9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60';
-    const publicKey = ed.getPublicKey(privateKey);
+    const publicKey = ed.getPublicKey(bytes(privateKey));
     const message = '';
-    const signature = ed.sign(message, privateKey);
+    const signature = ed.sign(bytes(message), bytes(privateKey));
     deepStrictEqual(
       hex(publicKey),
       'd75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a'
@@ -190,9 +190,9 @@ describe('ed25519', () => {
     );
   });
   should('rfc8032 vectors/should create right signature for 0x4c and 72', () => {
-    const privateKey = '4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb';
+    const privateKey = bytes('4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb');
     const publicKey = ed.getPublicKey(privateKey);
-    const message = '72';
+    const message = bytes('72');
     const signature = ed.sign(message, privateKey);
     deepStrictEqual(
       hex(publicKey),
@@ -204,10 +204,10 @@ describe('ed25519', () => {
     );
   });
   should('rfc8032 vectors/should create right signature for 0x00 and 5a', () => {
-    const privateKey = '002fdd1f7641793ab064bb7aa848f762e7ec6e332ffc26eeacda141ae33b1783';
+    const privateKey = bytes('002fdd1f7641793ab064bb7aa848f762e7ec6e332ffc26eeacda141ae33b1783');
     const publicKey = ed.getPublicKey(privateKey);
     const message =
-      '5ac1dfc324f43e6cb79a87ab0470fa857b51fb944982e19074ca44b1e40082c1d07b92efa7ea55ad42b7c027e0b9e33756d95a2c1796a7c2066811dc41858377d4b835c1688d638884cd2ad8970b74c1a54aadd27064163928a77988b24403aa85af82ceab6b728e554761af7175aeb99215b7421e4474c04d213e01ff03e3529b11077cdf28964b8c49c5649e3a46fa0a09dcd59dcad58b9b922a83210acd5e65065531400234f5e40cddcf9804968e3e9ac6f5c44af65001e158067fc3a660502d13fa8874fa93332138d9606bc41b4cee7edc39d753dae12a873941bb357f7e92a4498847d6605456cb8c0b425a47d7d3ca37e54e903a41e6450a35ebe5237c6f0c1bbbc1fd71fb7cd893d189850295c199b7d88af26bc8548975fda1099ffefee42a52f3428ddff35e0173d3339562507ac5d2c45bbd2c19cfe89b';
+      bytes('5ac1dfc324f43e6cb79a87ab0470fa857b51fb944982e19074ca44b1e40082c1d07b92efa7ea55ad42b7c027e0b9e33756d95a2c1796a7c2066811dc41858377d4b835c1688d638884cd2ad8970b74c1a54aadd27064163928a77988b24403aa85af82ceab6b728e554761af7175aeb99215b7421e4474c04d213e01ff03e3529b11077cdf28964b8c49c5649e3a46fa0a09dcd59dcad58b9b922a83210acd5e65065531400234f5e40cddcf9804968e3e9ac6f5c44af65001e158067fc3a660502d13fa8874fa93332138d9606bc41b4cee7edc39d753dae12a873941bb357f7e92a4498847d6605456cb8c0b425a47d7d3ca37e54e903a41e6450a35ebe5237c6f0c1bbbc1fd71fb7cd893d189850295c199b7d88af26bc8548975fda1099ffefee42a52f3428ddff35e0173d3339562507ac5d2c45bbd2c19cfe89b');
     const signature = ed.sign(message, privateKey);
     deepStrictEqual(
       hex(publicKey),
@@ -219,10 +219,10 @@ describe('ed25519', () => {
     );
   });
   should('rfc8032 vectors/should create right signature for 0xf5 and long msg', () => {
-    const privateKey = 'f5e5767cf153319517630f226876b86c8160cc583bc013744c6bf255f5cc0ee5';
+    const privateKey = bytes('f5e5767cf153319517630f226876b86c8160cc583bc013744c6bf255f5cc0ee5');
     const publicKey = ed.getPublicKey(privateKey);
     const message =
-      '08b8b2b733424243760fe426a4b54908632110a66c2f6591eabd3345e3e4eb98fa6e264bf09efe12ee50f8f54e9f77b1e355f6c50544e23fb1433ddf73be84d879de7c0046dc4996d9e773f4bc9efe5738829adb26c81b37c93a1b270b20329d658675fc6ea534e0810a4432826bf58c941efb65d57a338bbd2e26640f89ffbc1a858efcb8550ee3a5e1998bd177e93a7363c344fe6b199ee5d02e82d522c4feba15452f80288a821a579116ec6dad2b3b310da903401aa62100ab5d1a36553e06203b33890cc9b832f79ef80560ccb9a39ce767967ed628c6ad573cb116dbefefd75499da96bd68a8a97b928a8bbc103b6621fcde2beca1231d206be6cd9ec7aff6f6c94fcd7204ed3455c68c83f4a41da4af2b74ef5c53f1d8ac70bdcb7ed185ce81bd84359d44254d95629e9855a94a7c1958d1f8ada5d0532ed8a5aa3fb2d17ba70eb6248e594e1a2297acbbb39d502f1a8c6eb6f1ce22b3de1a1f40cc24554119a831a9aad6079cad88425de6bde1a9187ebb6092cf67bf2b13fd65f27088d78b7e883c8759d2c4f5c65adb7553878ad575f9fad878e80a0c9ba63bcbcc2732e69485bbc9c90bfbd62481d9089beccf80cfe2df16a2cf65bd92dd597b0707e0917af48bbb75fed413d238f5555a7a569d80c3414a8d0859dc65a46128bab27af87a71314f318c782b23ebfe808b82b0ce26401d2e22f04d83d1255dc51addd3b75a2b1ae0784504df543af8969be3ea7082ff7fc9888c144da2af58429ec96031dbcad3dad9af0dcbaaaf268cb8fcffead94f3c7ca495e056a9b47acdb751fb73e666c6c655ade8297297d07ad1ba5e43f1bca32301651339e22904cc8c42f58c30c04aafdb038dda0847dd988dcda6f3bfd15c4b4c4525004aa06eeff8ca61783aacec57fb3d1f92b0fe2fd1a85f6724517b65e614ad6808d6f6ee34dff7310fdc82aebfd904b01e1dc54b2927094b2db68d6f903b68401adebf5a7e08d78ff4ef5d63653a65040cf9bfd4aca7984a74d37145986780fc0b16ac451649de6188a7dbdf191f64b5fc5e2ab47b57f7f7276cd419c17a3ca8e1b939ae49e488acba6b965610b5480109c8b17b80e1b7b750dfc7598d5d5011fd2dcc5600a32ef5b52a1ecc820e308aa342721aac0943bf6686b64b2579376504ccc493d97e6aed3fb0f9cd71a43dd497f01f17c0e2cb3797aa2a2f256656168e6c496afc5fb93246f6b1116398a346f1a641f3b041e989f7914f90cc2c7fff357876e506b50d334ba77c225bc307ba537152f3f1610e4eafe595f6d9d90d11faa933a15ef1369546868a7f3a45a96768d40fd9d03412c091c6315cf4fde7cb68606937380db2eaaa707b4c4185c32eddcdd306705e4dc1ffc872eeee475a64dfac86aba41c0618983f8741c5ef68d3a101e8a3b8cac60c905c15fc910840b94c00a0b9d0';
+      bytes('08b8b2b733424243760fe426a4b54908632110a66c2f6591eabd3345e3e4eb98fa6e264bf09efe12ee50f8f54e9f77b1e355f6c50544e23fb1433ddf73be84d879de7c0046dc4996d9e773f4bc9efe5738829adb26c81b37c93a1b270b20329d658675fc6ea534e0810a4432826bf58c941efb65d57a338bbd2e26640f89ffbc1a858efcb8550ee3a5e1998bd177e93a7363c344fe6b199ee5d02e82d522c4feba15452f80288a821a579116ec6dad2b3b310da903401aa62100ab5d1a36553e06203b33890cc9b832f79ef80560ccb9a39ce767967ed628c6ad573cb116dbefefd75499da96bd68a8a97b928a8bbc103b6621fcde2beca1231d206be6cd9ec7aff6f6c94fcd7204ed3455c68c83f4a41da4af2b74ef5c53f1d8ac70bdcb7ed185ce81bd84359d44254d95629e9855a94a7c1958d1f8ada5d0532ed8a5aa3fb2d17ba70eb6248e594e1a2297acbbb39d502f1a8c6eb6f1ce22b3de1a1f40cc24554119a831a9aad6079cad88425de6bde1a9187ebb6092cf67bf2b13fd65f27088d78b7e883c8759d2c4f5c65adb7553878ad575f9fad878e80a0c9ba63bcbcc2732e69485bbc9c90bfbd62481d9089beccf80cfe2df16a2cf65bd92dd597b0707e0917af48bbb75fed413d238f5555a7a569d80c3414a8d0859dc65a46128bab27af87a71314f318c782b23ebfe808b82b0ce26401d2e22f04d83d1255dc51addd3b75a2b1ae0784504df543af8969be3ea7082ff7fc9888c144da2af58429ec96031dbcad3dad9af0dcbaaaf268cb8fcffead94f3c7ca495e056a9b47acdb751fb73e666c6c655ade8297297d07ad1ba5e43f1bca32301651339e22904cc8c42f58c30c04aafdb038dda0847dd988dcda6f3bfd15c4b4c4525004aa06eeff8ca61783aacec57fb3d1f92b0fe2fd1a85f6724517b65e614ad6808d6f6ee34dff7310fdc82aebfd904b01e1dc54b2927094b2db68d6f903b68401adebf5a7e08d78ff4ef5d63653a65040cf9bfd4aca7984a74d37145986780fc0b16ac451649de6188a7dbdf191f64b5fc5e2ab47b57f7f7276cd419c17a3ca8e1b939ae49e488acba6b965610b5480109c8b17b80e1b7b750dfc7598d5d5011fd2dcc5600a32ef5b52a1ecc820e308aa342721aac0943bf6686b64b2579376504ccc493d97e6aed3fb0f9cd71a43dd497f01f17c0e2cb3797aa2a2f256656168e6c496afc5fb93246f6b1116398a346f1a641f3b041e989f7914f90cc2c7fff357876e506b50d334ba77c225bc307ba537152f3f1610e4eafe595f6d9d90d11faa933a15ef1369546868a7f3a45a96768d40fd9d03412c091c6315cf4fde7cb68606937380db2eaaa707b4c4185c32eddcdd306705e4dc1ffc872eeee475a64dfac86aba41c0618983f8741c5ef68d3a101e8a3b8cac60c905c15fc910840b94c00a0b9d0');
     const signature = ed.sign(message, privateKey);
     deepStrictEqual(
       hex(publicKey),
@@ -265,7 +265,7 @@ describe('ed25519', () => {
       for (let v of zip215) {
         let noble = false;
         try {
-          noble = ed.verify(v.sig_bytes, str, v.vk_bytes);
+          noble = ed.verify(bytes(v.sig_bytes), (str), bytes(v.vk_bytes));
         } catch (e) {
           noble = false;
         }
@@ -275,11 +275,11 @@ describe('ed25519', () => {
     should('disallow sig.s >= CURVE.n', () => {
       // sig.R = BASE, sig.s = N+1
       const sig =
-        '5866666666666666666666666666666666666666666666666666666666666666eed3f55c1a631258d69cf7a2def9de1400000000000000000000000000000010';
+        bytes('5866666666666666666666666666666666666666666666666666666666666666eed3f55c1a631258d69cf7a2def9de1400000000000000000000000000000010');
       throws(() => {
-        deepStrictEqual(ed.verify(sig, 'deadbeef', Point.BASE), false);
+        deepStrictEqual(ed.verify(sig, bytes('deadbeef'), Point.BASE), false);
       });
-      deepStrictEqual(ed.verify(sig, 'be'.repeat(64), Point.BASE.toRawBytes()), false);
+      deepStrictEqual(ed.verify(sig, bytes('be'.repeat(64)), Point.BASE.toRawBytes()), false);
     });
   });
 
@@ -309,17 +309,17 @@ describe('ed25519', () => {
     for (let g = 0; g < ed25519vectors_OLD.testGroups.length; g++) {
       const group = ed25519vectors_OLD.testGroups[g];
       const key = group.key;
-      deepStrictEqual(hex(ed.getPublicKey(key.sk)), key.pk, `(${g}, public)`);
+      deepStrictEqual(hex(ed.getPublicKey(bytes(key.sk))), (key.pk), `(${g}, public)`);
       for (let i = 0; i < group.tests.length; i++) {
         const v = group.tests[i];
         const comment = `(${g}/${i}, ${v.result}): ${v.comment}`;
         if (v.result === 'valid' || v.result === 'acceptable') {
-          deepStrictEqual(hex(ed.sign(v.msg, key.sk)), v.sig, comment);
-          deepStrictEqual(ed.verify(v.sig, v.msg, key.pk), true, comment);
+          deepStrictEqual(hex(ed.sign(bytes(v.msg), bytes(key.sk))), v.sig, comment);
+          deepStrictEqual(ed.verify(bytes(v.sig), bytes(v.msg), bytes(key.pk)), true, comment);
         } else if (v.result === 'invalid') {
           let failed = false;
           try {
-            failed = !ed.verify(v.sig, v.msg, key.pk);
+            failed = !ed.verify(bytes(v.sig), bytes(v.msg), bytes(key.pk));
           } catch (error) {
             failed = true;
           }
@@ -337,11 +337,11 @@ describe('ed25519', () => {
         const v = group.tests[i];
         const comment = `(${g}/${i}, ${v.result}): ${v.comment}`;
         if (v.result === 'valid' || v.result === 'acceptable') {
-          deepStrictEqual(ed.verify(v.sig, v.msg, key.pk), true, comment);
+          deepStrictEqual(ed.verify(bytes(v.sig), bytes(v.msg), bytes(key.pk)), true, comment);
         } else if (v.result === 'invalid') {
           let failed = false;
           try {
-            failed = !ed.verify(v.sig, v.msg, key.pk);
+            failed = !ed.verify(bytes(v.sig), bytes(v.msg), bytes(key.pk));
           } catch (error) {
             failed = true;
           }
@@ -373,7 +373,7 @@ describe('ed25519', () => {
     // https://eprint.iacr.org/2020/1244
     const list = [0, 1, 6, 7, 8, 9, 10, 11].map((i) => edgeCases[i]);
     for (let v of list) {
-      const result = ed.verify(v.signature, v.message, v.pub_key, { zip215: false });
+      const result = ed.verify(bytes(v.signature), bytes(v.message), bytes(v.pub_key), { zip215: false });
       strictEqual(result, false, `zip215: false must not validate: ${v.signature}`);
     }
   });
@@ -419,21 +419,21 @@ describe('ed25519', () => {
     deepStrictEqual(zeros.equals(ed.ExtendedPoint.BASE.multiply(3n)), false);
 
     const key = ed.utils.randomPrivateKey();
-    const A = ed.ExtendedPoint.fromHex(ed.getPublicKey(key));
+    const A = ed.ExtendedPoint.fromRawBytes(ed.getPublicKey(key));
     const T = ed.ExtendedPoint.fromHex(ED25519_TORSION_SUBGROUP[2]);
     // console.log('A', A);
     // console.log('T', T);
     // console.log('add2', A.add(T).add(A));
     // console.log('add2 aff', A.add(T).add(A).toAffine());
     const B = A.add(T).add(A);
-    const C = ed.ExtendedPoint.fromHex(ed.getPublicKey(ed.utils.randomPrivateKey()));
+    const C = ed.ExtendedPoint.fromRawBytes(ed.getPublicKey(ed.utils.randomPrivateKey()));
     deepStrictEqual(B.equals(C), false);
 
     deepStrictEqual(
       ed.verify(
-        '86d8373bf0797b5fee241605760ffebeae65d2d3395cd9afbf67b52f0198484344d9709abd414b2880485fa93a1bb98fb9af0f083c8c3b8141d71b9dfd448b0b',
-        '48656c6c6f2c20576f726c6421',
-        '34fe104df0a1348ef60699b3659b5a31b14a6f8488e14bfa55d2cc310959ae50'
+        bytes('86d8373bf0797b5fee241605760ffebeae65d2d3395cd9afbf67b52f0198484344d9709abd414b2880485fa93a1bb98fb9af0f083c8c3b8141d71b9dfd448b0b'),
+        bytes('48656c6c6f2c20576f726c6421'),
+        bytes('34fe104df0a1348ef60699b3659b5a31b14a6f8488e14bfa55d2cc310959ae50')
       ),
       false
     );

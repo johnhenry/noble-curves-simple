@@ -5,7 +5,7 @@ import { bytesToNumberBE } from '../abstract/utils.js';
 import { bn254 } from '../bn254.js';
 import { default as ethDump } from './bn254/eth-dump.js';
 import { default as seda } from './bn254/seda.js';
-import { jsonGZ } from './utils.js';
+import { jsonGZ } from './utils.ts';
 const CROSS_PATH_GZ = './bn254/cross1000.json.gz'; // bundler hint: readFileSync('./test/bn254/cross1000.json.gz')
 
 describe('bn254', () => {

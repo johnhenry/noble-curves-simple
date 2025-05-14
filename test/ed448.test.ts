@@ -4,7 +4,7 @@ import { describe, should } from 'micro-should';
 import { deepStrictEqual, throws } from 'node:assert';
 import { numberToBytesLE } from '../abstract/utils.js';
 import { ed448, ed448ph, x448 } from '../ed448.js';
-import { json } from './utils.js';
+import { json } from './utils.ts';
 
 // Old vectors allow to test sign() because they include private key
 const ed448vectorsOld = json('./ed448/ed448_test_OLD.json');
@@ -322,7 +322,8 @@ describe('ed448', () => {
 
   describe('RFC8032', () => {
     for (let i = 0; i < VECTORS_RFC8032.length; i++) {
-      const v = VECTORS_RFC8032[i];
+      const vh = VECTORS_RFC8032[i];
+      const v = { secretKey: hexToBytes(vh.secretKey), message: hexToBytes(vh.message), signature: hexToBytes(vh.signature) }
       should(`${i}`, () => {
         deepStrictEqual(hex(ed.getPublicKey(v.secretKey)), v.publicKey);
         deepStrictEqual(hex(ed.sign(v.message, v.secretKey)), v.signature);
