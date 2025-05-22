@@ -31,6 +31,7 @@ import {
   abool,
   abytes,
   aInRange,
+  bitLen,
   bitMask,
   bytesToHex,
   bytesToNumberBE,
@@ -96,7 +97,8 @@ export type HmacFnSync = (key: Uint8Array, ...messages: Uint8Array[]) => Uint8Ar
  */
 export type EndomorphismOpts = {
   beta: bigint;
-  splitScalar: (k: bigint) => { k1neg: boolean; k1: bigint; k2neg: boolean; k2: bigint };
+  basises?: [[bigint, bigint], [bigint, bigint]];
+  splitScalar?: (k: bigint) => { k1neg: boolean; k1: bigint; k2neg: boolean; k2: bigint };
 };
 export type BasicWCurve<T> = BasicCurve<T> & {
   // Params: a, b
@@ -477,12 +479,8 @@ export function weierstrassN<T>(
   const { endo } = curveOpts;
   if (endo) {
     // validateObject(endo, { beta: 'bigint', splitScalar: 'function' });
-    if (
-      !Fp.is0(CURVE.a) ||
-      typeof endo.beta !== 'bigint' ||
-      typeof endo.splitScalar !== 'function'
-    ) {
-      throw new Error('invalid endo: expected "beta": bigint and "splitScalar": function');
+    if (!Fp.is0(CURVE.a) || typeof endo.beta !== 'bigint' || !Array.isArray(endo.basises)) {
+      throw new Error('invalid endo: expected "beta": bigint and "basises": array');
     }
   }
 
@@ -576,6 +574,33 @@ export function weierstrassN<T>(
 
   function aprjpoint(other: unknown) {
     if (!(other instanceof Point)) throw new Error('ProjectivePoint expected');
+  }
+
+  const divNearest = (a: bigint, b: bigint) => (a + b / _2n) / b;
+  function splitEndoScalar(k: bigint) {
+    if (!endo || !endo.basises) throw new Error('no endo');
+    const n = Fn.ORDER;
+    const MAX_NUM = bitMask(Math.ceil(bitLen(n) / 2)) + _1n;
+    const [[a1, b1], [a2, b2]] = endo.basises;
+    // const a1 = BigInt('0x3086d221a7d46bcde86c90e49284eb15');
+    // const b1 = -_1n * BigInt('0xe4437ed6010e88286f547fa90abfe4c3');
+    // const a2 = BigInt('0x114ca50f7a8e2f3f657c1108d9d44cfd8');
+    // const b2 = a1;
+    // const POW_2_128 = BigInt('0x100000000000000000000000000000000'); // (2n**128n).toString(16)
+
+    const c1 = divNearest(b2 * k, n);
+    const c2 = divNearest(-b1 * k, n);
+    let k1 = Fn.create(k - c1 * a1 - c2 * a2);
+    let k2 = Fn.create(-c1 * b1 - c2 * b2);
+    const k1neg = k1 > MAX_NUM;
+    const k2neg = k2 > MAX_NUM;
+    if (k1neg) k1 = n - k1;
+    if (k2neg) k2 = n - k2;
+    if (k1 > MAX_NUM || k2 > MAX_NUM) {
+      throw new Error('splitScalar: Endomorphism failed, k=' + k);
+    }
+    // console.log('splitting', k, k1, k2);
+    return { k1neg, k1, k2neg, k2 };
   }
 
   // Memoized toAffine / validity check. They are heavy. Points are immutable.
@@ -868,7 +893,7 @@ export function weierstrassN<T>(
       const mul = (n: bigint) => wnaf.wNAFCached(this, n, Point.normalizeZ);
       /** See docs for {@link EndomorphismOpts} */
       if (endo) {
-        const { k1neg, k1, k2neg, k2 } = endo.splitScalar(scalar);
+        const { k1neg, k1, k2neg, k2 } = splitEndoScalar(scalar);
         const { p: k1p, f: k1f } = mul(k1);
         const { p: k2p, f: k2f } = mul(k2);
         fake = k1f.add(k2f);
@@ -895,7 +920,7 @@ export function weierstrassN<T>(
       if (sc === _1n) return p; // fast-path
       if (wnaf.hasPrecomputes(this)) return this.multiply(sc);
       if (endo) {
-        const { k1neg, k1, k2neg, k2 } = endo.splitScalar(sc);
+        const { k1neg, k1, k2neg, k2 } = splitEndoScalar(sc);
         // `wNAFCachedUnsafe` is 30% slower
         const { p1, p2 } = mulEndo(Point, p, k1, k2);
         return finishEndo(endo.beta, p1, p2, k1neg, k2neg);
