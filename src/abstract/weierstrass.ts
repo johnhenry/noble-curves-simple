@@ -579,15 +579,21 @@ export function weierstrassN<T>(
   const divNearest = (a: bigint, b: bigint) => (a + b / _2n) / b;
   function splitEndoScalar(k: bigint) {
     if (!endo || !endo.basises) throw new Error('no endo');
+    // TODO: verifyScalar function which consumes lambda
     const n = Fn.ORDER;
     const MAX_NUM = bitMask(Math.ceil(bitLen(n) / 2)) + _1n;
     const [[a1, b1], [a2, b2]] = endo.basises;
+
+    // previous code
+    // max_num == POW_2_128
     // const a1 = BigInt('0x3086d221a7d46bcde86c90e49284eb15');
     // const b1 = -_1n * BigInt('0xe4437ed6010e88286f547fa90abfe4c3');
     // const a2 = BigInt('0x114ca50f7a8e2f3f657c1108d9d44cfd8');
     // const b2 = a1;
     // const POW_2_128 = BigInt('0x100000000000000000000000000000000'); // (2n**128n).toString(16)
 
+    // Seems fragile, Need to find general way of doing this.
+    // Why do we need k1neg, k2neg again?
     const c1 = divNearest(b2 * k, n);
     const c2 = divNearest(-b1 * k, n);
     let k1 = Fn.create(k - c1 * a1 - c2 * a2);
