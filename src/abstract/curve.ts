@@ -136,15 +136,15 @@ function assert0(n: bigint): void {
 }
 
 export type IWNAF<T extends Group<T>> = {
-  constTimeNegate: <T extends Group<T>>(condition: boolean, item: T) => T;
+  // constTimeNegate: <T extends Group<T>>(condition: boolean, item: T) => T;
   hasPrecomputes(elm: T): boolean;
   unsafeLadder(elm: T, n: bigint, p?: T): T;
-  precomputeWindow(elm: T, W: number): Group<T>[];
-  getPrecomputes(W: number, P: T, transform?: Mapper<T>): T[];
-  wNAF(W: number, precomputes: T[], n: bigint): { p: T; f: T };
-  wNAFUnsafe(W: number, precomputes: T[], n: bigint, acc?: T): T;
-  wNAFCached(P: T, n: bigint, transform?: Mapper<T>): { p: T; f: T };
-  wNAFCachedUnsafe(P: T, n: bigint, transform?: Mapper<T>, prev?: T): T;
+  _precWindow(elm: T, W: number): Group<T>[];
+  _getPrec(W: number, P: T, transform?: Mapper<T>): T[];
+  _wnaf(W: number, precomputes: T[], n: bigint): { p: T; f: T };
+  _uns(W: number, precomputes: T[], n: bigint, acc?: T): T;
+  cached(P: T, n: bigint, transform?: Mapper<T>): { p: T; f: T };
+  unsafe(P: T, n: bigint, transform?: Mapper<T>, prev?: T): T;
   setWindowSize(P: T, W: number): void;
 };
 
@@ -164,7 +164,7 @@ export type IWNAF<T extends Group<T>> = {
  */
 export function wNAF<T extends Group<T>>(c: GroupConstructor<T>, bits: number): IWNAF<T> {
   return {
-    constTimeNegate: negateCt,
+    // constTimeNegate: negateCt,
 
     hasPrecomputes(elm: T) {
       return getW(elm) !== 1;
@@ -193,7 +193,7 @@ export function wNAF<T extends Group<T>>(c: GroupConstructor<T>, bits: number): 
      * @param W window size
      * @returns precomputed point tables flattened to a single array
      */
-    precomputeWindow(elm: T, W: number): Group<T>[] {
+    _precWindow(elm: T, W: number): Group<T>[] {
       const { windows, windowSize } = calcWOpts(W, bits);
       const points: T[] = [];
       let p: T = elm;
@@ -218,7 +218,7 @@ export function wNAF<T extends Group<T>>(c: GroupConstructor<T>, bits: number): 
      * @param n scalar (we don't check here, but should be less than curve order)
      * @returns real and fake (for const-time) points
      */
-    wNAF(W: number, precomputes: T[], n: bigint): { p: T; f: T } {
+    _wnaf(W: number, precomputes: T[], n: bigint): { p: T; f: T } {
       // Smaller version:
       // https://github.com/paulmillr/noble-secp256k1/blob/47cb1669b6e506ad66b35fe7d76132ae97465da2/index.ts#L502-L541
       // TODO: check the scalar is less than group order?
@@ -261,7 +261,7 @@ export function wNAF<T extends Group<T>>(c: GroupConstructor<T>, bits: number): 
      * @param acc accumulator point to add result of multiplication
      * @returns point
      */
-    wNAFUnsafe(W: number, precomputes: T[], n: bigint, acc: T = c.ZERO): T {
+    _uns(W: number, precomputes: T[], n: bigint, acc: T = c.ZERO): T {
       const wo = calcWOpts(W, bits);
       for (let window = 0; window < wo.windows; window++) {
         if (n === _0n) break; // Early-exit, skip 0 value
@@ -280,11 +280,11 @@ export function wNAF<T extends Group<T>>(c: GroupConstructor<T>, bits: number): 
       return acc;
     },
 
-    getPrecomputes(W: number, P: T, transform?: Mapper<T>): T[] {
+    _getPrec(W: number, P: T, transform?: Mapper<T>): T[] {
       // Calculate precomputes on a first run, reuse them after
       let comp = pointPrecomputes.get(P);
       if (!comp) {
-        comp = this.precomputeWindow(P, W) as T[];
+        comp = this._precWindow(P, W) as T[];
         if (W !== 1) {
           // Doing transform outside of if brings 15% perf hit
           if (typeof transform === 'function') comp = transform(comp);
@@ -294,15 +294,15 @@ export function wNAF<T extends Group<T>>(c: GroupConstructor<T>, bits: number): 
       return comp;
     },
 
-    wNAFCached(P: T, n: bigint, transform?: Mapper<T>): { p: T; f: T } {
+    cached(P: T, n: bigint, transform?: Mapper<T>): { p: T; f: T } {
       const W = getW(P);
-      return this.wNAF(W, this.getPrecomputes(W, P, transform), n);
+      return this._wnaf(W, this._getPrec(W, P, transform), n);
     },
 
-    wNAFCachedUnsafe(P: T, n: bigint, transform?: Mapper<T>, prev?: T): T {
+    unsafe(P: T, n: bigint, transform?: Mapper<T>, prev?: T): T {
       const W = getW(P);
       if (W === 1) return this.unsafeLadder(P, n, prev); // For W=1 ladder is ~x2 faster
-      return this.wNAFUnsafe(W, this.getPrecomputes(W, P, transform), n, prev);
+      return this._uns(W, this._getPrec(W, P, transform), n, prev);
     },
 
     // We calculate precomputes for elliptic curve point multiplication

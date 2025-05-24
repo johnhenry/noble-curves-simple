@@ -186,6 +186,10 @@
       "import": "./esm/abstract/utils.js",
       "require": "./abstract/utils.js"
     },
+    "./abstract/ecdsa.js": {
+      "import": "./esm/abstract/ecdsa.js",
+      "require": "./abstract/ecdsa.js"
+    },
     "./abstract/weierstrass.js": {
       "import": "./esm/abstract/weierstrass.js",
       "require": "./abstract/weierstrass.js"

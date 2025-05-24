@@ -144,8 +144,9 @@ const hasEven = (y: bigint) => y % _2n === _0n;
 
 // Calculate point, scalar and bytes
 function schnorrGetExtPubKey(priv: PrivKey) {
-  let d_ = secp256k1.utils.normPrivateKeyToScalar(priv); // same method executed in fromPrivateKey
+  let d_ = Point.Fn.fromBytes(priv); // same method executed in fromPrivateKey
   let p = Point.fromPrivateKey(d_); // P = d'⋅G; 0 < d' < n check is done inside
+  // @ts-ignore
   const scalar = hasEven(p.y) ? d_ : modN(-d_);
   return { scalar: scalar, bytes: pointToBytes(p) };
 }
