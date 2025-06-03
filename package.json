@@ -1,5 +1,5 @@
 {
-  "name": "@noble/curves-simple",
+  "name": "noble-curves-simple",
   "version": "0.0.0",
   "description": "Pure JavaScript ES modules version of @noble/curves - Audited & minimal JS implementation of elliptic curve cryptography",
   "files": [

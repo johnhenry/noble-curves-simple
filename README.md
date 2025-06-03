@@ -12,14 +12,14 @@ This is a pre-compiled version of the noble-curves library that:
 ## Installation
 
 ```bash
-npm install @noble/curves-simple
+npm install noble-curves-simple
 ```
 
 Or use directly from CDN:
 
 ```js
-import { secp256k1 } from 'https://unpkg.com/@noble/curves-simple/secp256k1.js';
-import { ed25519 } from 'https://unpkg.com/@noble/curves-simple/ed25519.js';
+import { secp256k1 } from 'https://unpkg.com/noble-curves-simple/secp256k1.js';
+import { ed25519 } from 'https://unpkg.com/noble-curves-simple/ed25519.js';
 ```
 
 ## Usage
@@ -29,7 +29,7 @@ The API is identical to [@noble/curves](https://github.com/paulmillr/noble-curve
 Quick example:
 
 ```js
-import { secp256k1 } from '@noble/curves-simple/secp256k1';
+import { secp256k1 } from 'noble-curves-simple/secp256k1';
 
 // Generate private key
 const privKey = secp256k1.utils.randomPrivateKey();
