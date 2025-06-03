@@ -1,10 +1,4 @@
 node_modules
-/*.js
-/abstract
-/esm
-/cjs
-*.d.ts
-*.d.ts.map
-*.js.map
 *.tgz
-/test/build
+.DS_Store
+npm-debug.log*

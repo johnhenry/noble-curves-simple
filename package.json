@@ -1,12 +1,9 @@
 {
   "name": "noble-curves-simple",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Pure JavaScript ES modules version of @noble/curves - Audited & minimal JS implementation of elliptic curve cryptography",
   "files": [
     "*.js",
-    "*.js.map",
-    "*.d.ts",
-    "*.d.ts.map",
     "abstract"
   ],
   "scripts": {
